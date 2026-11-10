@@ -4,12 +4,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CATEGORIES, getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER, PUBLIC_STORE_URL } from '../config';
 import { createApp, getApp, updateApp } from '../services/appsService';
+import { uploadApkToReleases } from '../services/apkUpload';
 import { formatNumber, formatRating } from '../utils/formatters';
 import { createSlug } from '../utils/slug';
 
 const initialForm = {
   title: '', slug: '', categoryKey: 'educacion', shortDescription: '', fullDescription: '',
-  iconUrl: '', bannerUrl: '', screenshots: '', playStoreUrl: '', privacyPolicyUrl: '',
+  iconUrl: '', bannerUrl: '', screenshots: '', playStoreUrl: '', apkUrl: '', privacyPolicyUrl: '',
   termsUrl: '', legalNoticeUrl: '', accountDeletionUrl: '', securityReportUrl: '',
   packageName: '', appSize: '', operatingSystem: 'Android', minAndroidVersion: '',
   currentVersion: '', lastUpdate: '', languages: '', offlineUse: 'No', containsAds: 'No',
@@ -26,6 +27,7 @@ export default function AppFormPage({ mode }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [uploadingApk, setUploadingApk] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function AppFormPage({ mode }) {
           shortDescription: app.shortDescription || '', fullDescription: app.fullDescription || '',
           iconUrl: app.iconUrl || '', bannerUrl: app.bannerUrl || '',
           screenshots: Array.isArray(app.screenshots) ? app.screenshots.join('\n') : '',
-          playStoreUrl: app.playStoreUrl || app.downloadUrl || '',
+          playStoreUrl: app.playStoreUrl || '', apkUrl: app.apkUrl || app.downloadUrl || '',
           privacyPolicyUrl: app.privacyPolicyUrl || '', termsUrl: app.termsUrl || '',
           legalNoticeUrl: app.legalNoticeUrl || '', accountDeletionUrl: app.accountDeletionUrl || '',
           securityReportUrl: app.securityReportUrl || '', packageName: app.packageName || '',
@@ -64,6 +66,27 @@ export default function AppFormPage({ mode }) {
     setErrors((current) => ({ ...current, [field]: '' }));
   };
   const handleTitleChange = (value) => setForm((current) => ({ ...current, title: value, slug: current.slug || createSlug(value) }));
+
+  const handleApkUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!form.slug || !form.currentVersion) {
+      setMessage('Completa el identificador público y la versión antes de subir el APK.');
+      return;
+    }
+    setUploadingApk(true);
+    setMessage('');
+    try {
+      const result = await uploadApkToReleases(file, form.slug, form.currentVersion);
+      handleChange('apkUrl', result.apkUrl);
+      setMessage('APK subido. Guarda la aplicación para publicar el enlace.');
+    } catch (error) {
+      setMessage(error.message || 'No se pudo subir el APK.');
+    } finally {
+      setUploadingApk(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -95,7 +118,7 @@ export default function AppFormPage({ mode }) {
         </div>
         <div className="header-actions">
           {form.slug && <a className="ghost-button" href={`${PUBLIC_STORE_URL}/app/${form.slug}`} target="_blank" rel="noreferrer"><Eye size={17} /> Vista pública</a>}
-          <button className="primary-button" disabled={saving} type="submit"><Save size={18} /> {saving ? 'Guardando...' : 'Guardar app'}</button>
+          <button className="primary-button" disabled={saving || uploadingApk} type="submit"><Save size={18} /> {saving ? 'Guardando...' : 'Guardar app'}</button>
         </div>
       </section>
 
@@ -149,13 +172,22 @@ export default function AppFormPage({ mode }) {
       <section className="surface form-section">
         <div className="section-title"><Save size={19} /><h3>Enlaces de publicación y legales</h3></div>
         <div className="fields-grid two">
-          <Field label="Enlace de Google Play" error={errors.playStoreUrl} required><input value={form.playStoreUrl} onChange={(e) => handleChange('playStoreUrl', e.target.value)} placeholder="https://play.google.com/store/apps/details?id=..." /></Field>
+          <Field label="Enlace de Google Play" error={errors.playStoreUrl}><input value={form.playStoreUrl} onChange={(e) => handleChange('playStoreUrl', e.target.value)} placeholder="https://play.google.com/store/apps/details?id=..." /></Field>
+          <Field label="APK (GitHub Releases)" error={errors.apkUrl}>
+            <input value={form.apkUrl} onChange={(e) => handleChange('apkUrl', e.target.value)} placeholder="https://github.com/.../releases/download/.../app.apk" />
+          </Field>
           <Field label="Política de privacidad" error={errors.privacyPolicyUrl} required><input value={form.privacyPolicyUrl} onChange={(e) => handleChange('privacyPolicyUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Términos de servicio"><input value={form.termsUrl} onChange={(e) => handleChange('termsUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Aviso legal"><input value={form.legalNoticeUrl} onChange={(e) => handleChange('legalNoticeUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Eliminación de cuenta y datos"><input value={form.accountDeletionUrl} onChange={(e) => handleChange('accountDeletionUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Reporte de seguridad y vulnerabilidades"><input value={form.securityReportUrl} onChange={(e) => handleChange('securityReportUrl', e.target.value)} placeholder="https://..." /></Field>
         </div>
+        <label className="field">
+          <span>Subir archivo APK a GitHub Releases</span>
+          <input type="file" accept=".apk,application/vnd.android.package-archive"
+            disabled={uploadingApk || saving} onChange={handleApkUpload} />
+        </label>
+        {uploadingApk ? <p role="status">Subiendo APK...</p> : null}
       </section>
 
       <section className="surface form-section">
