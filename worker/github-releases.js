@@ -67,9 +67,10 @@ export default {
         request.headers.get('content-type') !== 'application/vnd.android.package-archive') {
       return json({ error: 'Nombre, versión o formato APK inválido.' }, 400, headers);
     }
-    const length = Number(request.headers.get('content-length'));
+    const declaredLength = request.headers.get('content-length');
+    const length = declaredLength === null ? null : Number(declaredLength);
     // Cloudflare Free limita el tamaño del cuerpo de solicitud; mantener margen respecto a 100 MB.
-    if (!Number.isFinite(length) || length <= 0 || length > 95_000_000) {
+    if (length !== null && (!Number.isSafeInteger(length) || length <= 0 || length > 95_000_000)) {
       return json({ error: 'El APK debe ocupar entre 1 byte y 95 MB.' }, 413, headers);
     }
     const repo = env.GITHUB_REPOSITORY;

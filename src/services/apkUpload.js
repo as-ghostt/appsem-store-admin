@@ -1,6 +1,6 @@
 import { auth } from '../firebase';
 
-// Endpoint Cloudflare Worker configurado en Vercel: VITE_APK_UPLOAD_API.
+// Endpoint seguro Cloudflare Pages Functions configurado en el panel: VITE_APK_UPLOAD_API.
 export async function uploadApkToReleases(file, slug, version) {
   if (!file?.name?.toLowerCase().endsWith('.apk')) throw Error('Selecciona un archivo .apk.');
   if (!file.size || file.size > 95_000_000) throw Error('El APK supera el límite de carga de 95 MB.');

@@ -1,54 +1,32 @@
-# Integración APK — GitHub Releases
+# Subida de APK a GitHub Releases — AppsEM Store Admin
 
-## Estado
-- Código del panel: añadido en main.
-- Worker de subida: código añadido, **pendiente de despliegue en Cloudflare**.
-- Prueba de carga real: **pendiente** (necesita credenciales y despliegue).
-- Tienda pública: ya usa `app.downloadUrl || app.apkUrl || app.playStoreUrl`; no requiere cambios en este paso.
-- Reglas de Firestore: sin cambios. No se ha tocado la auditoría de fases 1–3.
+**Código desplegado en Cloudflare Pages; subida real pendiente de una credencial secreta.**
 
-## Configuración obligatoria
-Desplegar `worker/github-releases.js` como Cloudflare Worker (módulo ES). Configurar:
+La tienda usa `app.apkUrl` para descargar los APK. El formulario de Admin permite elegir un archivo o introducir manualmente un enlace de Release.
 
-| Nombre | Tipo | Valor |
-|---|---|---|
-| `GITHUB_TOKEN` | **Secret** | Token GitHub fine-grained del propietario, con permisos Contents: read/write sobre el repositorio de Releases |
-| `GITHUB_REPOSITORY` | Variable | `eler30mr-star/appsem-store` |
-| `ADMIN_ORIGIN` | Variable | Origen HTTPS exacto de Vercel del panel administrativo, sin barra final |
-| `FIREBASE_PROJECT_ID` | Variable | `webs-8b1bf` |
-| `ADMIN_EMAIL` | Variable | Correo administrativo del proyecto (mismo que `src/config.js`) |
+## Arquitectura en la cuenta CEO
+- Admin: `https://appsem-store-admin.pages.dev`, repositorio `as-ghostt/appsem-store-admin`.
+- Ruta de carga: `functions/api/upload-apk.js` → `worker/github-releases.js`.
+- Destino público: Releases de `as-ghostt/appsem-store`.
+- Base de datos: Firestore `webs-8b1bf`, sin cambios de reglas ni colecciones.
+- El navegador transmite un Firebase ID token; el servidor comprueba firma, audiencia, expiración y correo administrativo verificado.
+- La URL directa de descarga se devuelve al formulario; pulsar **Guardar app** la registra en Firestore.
 
-El token únicamente vive en los secrets del Worker. **Nunca** introducir un token de GitHub en `VITE_*`, Firestore ni en código React.
+## Única credencial pendiente para la subida automática
+1. En la cuenta GitHub `as-ghostt`, generar un Fine-grained personal access token con permiso **Contents: Read and write** limitado exclusivamente al repositorio `appsem-store`.
+2. Abrir Cloudflare CEO → Workers & Pages → `appsem-store-admin` → Settings → Variables and Secrets.
+3. Añadir `GITHUB_TOKEN` para **Production** con tipo **Secret / Encrypt**, nunca como variable `VITE_*` ni en el repositorio.
+4. Implementar un nuevo despliegue de `main` para asegurar que el secreto esté disponible.
+5. Subir un APK de prueba desde el panel y verificar que la Release pública y la URL registrada funcionen antes de publicar apps reales.
 
-En la configuración de Vercel **del panel admin**, añadir:
-```env
-VITE_APK_UPLOAD_API=https://TU-WORKER.workers.dev
-```
-Sustituir por el dominio real del Worker, redeploy del panel y probar con una app en borrador.
+Las variables no secretas `GITHUB_REPOSITORY`, `ADMIN_EMAIL`, `FIREBASE_PROJECT_ID`, `VITE_APK_UPLOAD_API` y `VITE_PUBLIC_STORE_URL` ya se configuraron en Pages Production.
 
-## Publicación
-1. Crear o editar la ficha; añadir `slug` y `currentVersion`.
-2. Elegir un APK de hasta **95 MB** desde el formulario; el panel obtiene un ID token Firebase y llama al Worker.
-3. Worker valida firma JWT con las claves oficiales Firebase, audiencia, emisor, expiración y administrador verificado.
-4. Worker crea o reutiliza la Release con tag `apk/<slug>/v<version>` y carga el asset.
-5. El panel recibe `apkUrl`; **pulsar Guardar app** para registrar el enlace en Firestore.
-6. La tienda pública muestra la descarga al publicar la aplicación.
+## Límites y operación
+- Upload automático vía Cloudflare: hasta **95 MB** por archivo, por debajo del límite de peticiones del plan Free. Si el navegador omite `Content-Length`, Cloudflare aplica su límite de tamaño de solicitud; el cliente comprueba igualmente 95 MB.
+- GitHub Releases acepta hasta 2 GiB por asset. Para archivos mayores de 95 MB, subirlos manualmente a Releases y pegar el enlace.
+- No sobrescribir un asset existente bajo la misma versión y nombre; publicar una versión nueva.
+- El repositorio destino debe continuar público para permitir descargas anónimas.
+- Si un APK se carga y no se guarda el formulario en Firestore, queda una Release sin referencia: revisar versiones no publicadas.
+- No existen secretos de GitHub guardados en código; el endpoint responde 503 hasta configurar el secreto.
 
-Se admite alternativamente pegar manualmente la URL `https://github.com/<owner>/<repo>/releases/download/<tag>/<archivo>.apk`. El enlace de Google Play deja de ser obligatorio si hay APK válido. Los dos enlaces pueden coexistir.
-
-## Límites y cautelas
-- El tamaño de cada asset de GitHub Releases admite hasta 2 GiB, **pero el camino de carga con Cloudflare Worker gratuito está limitado aquí a 95 MB por petición** (Cloudflare Free limita el cuerpo entrante a 100 MB). Los APK mayores requieren otro flujo, por ejemplo subir manualmente a Releases y pegar la URL, o una arquitectura distinta.
-- Las Releases se publican en un repositorio GitHub **público**; no subir compilaciones privadas ni credenciales.
-- Utilizar números de versión nuevos para sustituir APK; no sobrescribir assets ya publicados.
-- La Release se crea antes de guardar Firestore. Si no se guarda el formulario, queda un asset sin referencia que debe revisarse.
-- No se han ejecutado subidas reales ni configurado cuentas externas.
-- Comprobar políticas de uso no comercial del plan Vercel Hobby si la tienda promociona aplicaciones monetizadas.
-
-## Regresión obligatoria
-- Probar creación con solo Play Store, solo APK y ambos enlaces.
-- Rechazar URL no HTTPS, no GitHub Releases y extensiones incorrectas.
-- Rechazar token no autorizado, token expirado, CORS incorrecto y archivo demasiado grande.
-- Verificar que se mantiene el estado borrador, los datos previos, la moderación y los contadores.
-- Revisar las políticas de GitHub y los límites de Cloudflare antes de subir archivos grandes.
-
-**Relación con Auditoría 1:** esta integración forma parte de la fase 4 (gestión del catálogo). No equivale a cerrar la fase 4 ni las fases anteriores.
+Integración vinculada a la fase 4 de `docs/auditorias/Auditoria_1_Appsem_Store_Admin.md`; no cerrar las fases de auditoría aún pendientes.

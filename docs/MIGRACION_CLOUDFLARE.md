@@ -41,3 +41,13 @@ Respetar `docs/auditorias/Auditoria_1_Appsem_Store_Admin.md` y `docs/fase-03/REA
 - URL asignada: `https://appsem-store-admin.pages.dev`.
 - Este commit inicia una compilación de prueba mediante integración GitHub; la creación del proyecto no prueba aún funcionamiento de la web.
 - Vercel continúa intacto hasta confirmar un despliegue funcional y las verificaciones de seguridad.
+
+
+## Estado comprobado — 10/11/2026 (cuenta CEO)
+- Cloudflare Pages `appsem-store-admin` enlazado a `as-ghostt/appsem-store-admin` rama `main`; despliegue automático y estado de build `success`.
+- Dirección pública: `https://appsem-store-admin.pages.dev`. El propietario confirmó inicio de sesión con Google después de autorizar el dominio Firebase.
+- Enlace a la tienda configurado: `https://appsem-store.pages.dev` (`VITE_PUBLIC_STORE_URL`).
+- La subida APK ahora usa una Pages Function **del mismo dominio**: `/api/upload-apk`, que reutiliza `worker/github-releases.js` y verifica el ID token Firebase. Variables Cloudflare `GITHUB_REPOSITORY=as-ghostt/appsem-store`, `FIREBASE_PROJECT_ID=webs-8b1bf`, `ADMIN_EMAIL` y `VITE_APK_UPLOAD_API` instaladas.
+- **Pendiente bloqueante**: configurar `GITHUB_TOKEN` como secreto cifrado de producción con permiso Contents: write solamente sobre `as-ghostt/appsem-store`. Sin token la API responde 503 seguro; no afirmar que la subida funciona.
+- La app pública podrá descargar directamente desde Releases sin usar transferencia de Vercel. No se ha cargado ningún APK real ni realizado pruebas de escritura.
+- Los sitios Vercel anteriores no han sido eliminados. Auditar la publicación del nuevo backend y probar la subida con APK de prueba antes del corte definitivo.
