@@ -103,14 +103,14 @@ export function validateAppPayload(payload) {
       try {
         const url = new URL(payload[field]);
         if (url.protocol !== 'https:' || url.username || url.password ||
-            !url.hostname.includes('.') || /^(localhost|127\\.|10\\.|192\\.168\\.)/.test(url.hostname)) {
+            !url.hostname.includes('.') || /^(localhost|127\.|10\.|192\.168\.)/.test(url.hostname)) {
           errors[field] = 'Se requiere una URL HTTPS pública.';
         }
-        if (field === 'apkUrl' && !/^github\\.com$/i.test(url.hostname)) {
+        if (field === 'apkUrl' && !/^github\.com$/i.test(url.hostname)) {
           errors[field] = 'Solo se admiten enlaces de GitHub Releases.';
         }
         if (field === 'apkUrl' &&
-            !/^\\/[^/]+\\/[^/]+\\/releases\\/download\\/[^/]+\\/[^/]+\\.apk$/i.test(url.pathname)) {
+            !/^\/[^/]+\/[^/]+\/releases\/download\/[^/]+\/[^/]+\.apk$/i.test(url.pathname)) {
           errors[field] = 'Usa el enlace directo de un APK de GitHub Releases.';
         }
       } catch { errors[field] = 'URL de descarga inválida.'; }
