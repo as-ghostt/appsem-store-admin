@@ -3,14 +3,14 @@
 Estado: **preparación de código realizada, despliegue NO realizado**.
 
 ## Cuenta y bloqueo
-- Cuenta Cloudflare inspeccionada: cuenta vinculada al propietario de GitHub `eler30mr-star`.
+- Cuenta Cloudflare inspeccionada: cuenta exclusiva `ceo.developer.appsem@gmail.com`.
 - El intento de crear el proyecto Pages conectado a GitHub devolvió HTTP 401 / código `8000011`: "There is an internal issue with your Cloudflare Pages Git installation".
 - **Se debe reparar o reinstalar la integración de GitHub en Cloudflare Pages antes de activar despliegues automáticos.**
 - Vercel sigue siendo el alojamiento actual, sin cambios de DNS.
 
 ## Configuración prevista en Cloudflare Pages
 - Proyecto: `appsem-store-admin`.
-- Repositorio: `eler30mr-star/appsem-store-admin`, rama `main`.
+- Repositorio: `as-ghostt/appsem-store-admin`, rama `main`.
 - Framework Vite/React; build `npm run build`, salida `dist`, directorio raíz `/`.
 - `public/_redirects` asegura la navegación SPA.
 - Variable de build `VITE_PUBLIC_STORE_URL`: URL HTTPS final del sitio público Cloudflare.
@@ -27,3 +27,9 @@ Estado: **preparación de código realizada, despliegue NO realizado**.
 
 ## Auditoría
 Respetar `docs/auditorias/Auditoria_1_Appsem_Store_Admin.md` y `docs/fase-03/README.md`. Las fases 2 y 3 conservan pendientes de producción; esta preparación no las cierra. No se ha alterado Firebase ni el catálogo.
+
+## Verificación de cuenta CEO (10/11/2026)
+- GitHub conectado: `as-ghostt`, acceso administrador a ambos repositorios.
+- Cloudflare conectado: `ceo.developer.appsem@gmail.com`, cuenta `0bdec89d523124e6346040488c71276a`.
+- Intento de crear `appsem-store-admin` con GitHub en esta **cuenta CEO**: Cloudflare devolvió HTTP 401, código `8000011` (problema interno de instalación Git). La creación no se completó.
+- La migración no debe utilizar cuentas diferentes de CEO. No mover tráfico ni retirar Vercel hasta validar un despliegue operativo.
