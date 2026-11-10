@@ -45,6 +45,7 @@ export function buildAppPayload(formData, mode = 'create') {
     bannerUrl: cleanText(formData.bannerUrl),
     screenshots: parseScreenshots(formData.screenshots),
     playStoreUrl: cleanText(formData.playStoreUrl),
+    apkUrl: cleanText(formData.apkUrl),
     privacyPolicyUrl: cleanText(formData.privacyPolicyUrl),
     termsUrl: cleanText(formData.termsUrl),
     legalNoticeUrl: cleanText(formData.legalNoticeUrl),
@@ -92,7 +93,29 @@ export function validateAppPayload(payload) {
   if (!payload.shortDescription) errors.shortDescription = 'La descripción corta es obligatoria.';
   if (!payload.fullDescription) errors.fullDescription = 'La descripción completa es obligatoria.';
   if (!payload.iconUrl) errors.iconUrl = 'El icono por URL es obligatorio.';
-  if (!payload.playStoreUrl) errors.playStoreUrl = 'El enlace de Google Play es obligatorio.';
+  // Se puede publicar una aplicación en Play Store, mediante APK directo, o ambos.
+  if (!payload.playStoreUrl && !payload.apkUrl) {
+    errors.playStoreUrl = 'Agrega un enlace de Google Play o un APK.';
+    errors.apkUrl = 'Agrega un enlace de descarga APK o Google Play.';
+  }
+  for (const field of ['playStoreUrl', 'apkUrl']) {
+    if (payload[field]) {
+      try {
+        const url = new URL(payload[field]);
+        if (url.protocol !== 'https:' || url.username || url.password ||
+            !url.hostname.includes('.') || /^(localhost|127\\.|10\\.|192\\.168\\.)/.test(url.hostname)) {
+          errors[field] = 'Se requiere una URL HTTPS pública.';
+        }
+        if (field === 'apkUrl' && !/^github\\.com$/i.test(url.hostname)) {
+          errors[field] = 'Solo se admiten enlaces de GitHub Releases.';
+        }
+        if (field === 'apkUrl' &&
+            !/^\\/[^/]+\\/[^/]+\\/releases\\/download\\/[^/]+\\/[^/]+\\.apk$/i.test(url.pathname)) {
+          errors[field] = 'Usa el enlace directo de un APK de GitHub Releases.';
+        }
+      } catch { errors[field] = 'URL de descarga inválida.'; }
+    }
+  }
   if (!payload.privacyPolicyUrl) errors.privacyPolicyUrl = 'La política de privacidad de la app es obligatoria.';
 
   return errors;
