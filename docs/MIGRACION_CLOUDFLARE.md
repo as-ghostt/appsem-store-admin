@@ -51,3 +51,8 @@ Respetar `docs/auditorias/Auditoria_1_Appsem_Store_Admin.md` y `docs/fase-03/REA
 - **Pendiente bloqueante**: configurar `GITHUB_TOKEN` como secreto cifrado de producción con permiso Contents: write solamente sobre `as-ghostt/appsem-store`. Sin token la API responde 503 seguro; no afirmar que la subida funciona.
 - La app pública podrá descargar directamente desde Releases sin usar transferencia de Vercel. No se ha cargado ningún APK real ni realizado pruebas de escritura.
 - Los sitios Vercel anteriores no han sido eliminados. Auditar la publicación del nuevo backend y probar la subida con APK de prueba antes del corte definitivo.
+
+## Verificación del 12/11/2026 — token de GitHub confirmado
+- En Cloudflare CEO se comprobó que `GITHUB_TOKEN` está almacenado como secreto cifrado de Production. También existe `FIREBASE_SERVICE_ACCOUNT_JSON` cifrado en Admin, sin necesitarlo para el Worker actual.
+- Se reintentó el despliegue de Admin después de instalar el secreto, con `success`. El commit `240bd195a566c58ab41293fb4cb41b996b2bc7bb` corrigió el tag de Releases para que los enlaces APK respeten la validación del formulario y se desplegó con `success`.
+- **La subida real de APK aún no se ha probado**: ni se ha subido un archivo ni alterado el catálogo Firestore. Confirmar con un APK real de prueba antes de afirmar que la subida funciona de extremo a extremo.
