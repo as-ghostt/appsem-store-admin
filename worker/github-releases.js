@@ -74,7 +74,8 @@ export default {
       return json({ error: 'El APK debe ocupar entre 1 byte y 95 MB.' }, 413, headers);
     }
     const repo = env.GITHUB_REPOSITORY;
-    const tag = 'apk/' + slug + '/v' + version;
+    // Single URL path segment: accepted by Admin's github.com/releases/download URL validator.
+    const tag = 'apk-' + slug + '-v' + version;
     const base = 'https://api.github.com/repos/' + repo;
     const lookup = await github(base + '/releases/tags/' + encodeURIComponent(tag), env.GITHUB_TOKEN);
     let release;
