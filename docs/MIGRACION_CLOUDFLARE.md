@@ -1,6 +1,6 @@
-# Migración a Cloudflare — AppsEM Admin
+# Migración a Cloudflare — Appsem Admin
 
-Estado: **preparación de código realizada, despliegue NO realizado**.
+Estado actual (12/11/2026): **Cloudflare Pages en producción y GitHub Releases validado mediante borrador privado.** Pendiente: prueba de un APK auténtico desde la interfaz y retirada de Vercel. Las notas de configuración y errores previos se mantienen como historial.
 
 ## Cuenta y bloqueo
 - Cuenta Cloudflare inspeccionada: cuenta exclusiva `ceo.developer.appsem@gmail.com`.
