@@ -13,6 +13,7 @@ import {
 import { db } from '../firebase';
 import { getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER } from '../config';
+import { isOfficialPlayStoreUrl, isGithubReleasesApkUrl } from '../utils/downloadLinks';
 import {
   moderateCommentAtomic, archiveAppAtomic, restoreAppAtomic, updatePublicationAtomic
 } from './phase3Transactions';
@@ -106,11 +107,10 @@ export function validateAppPayload(payload) {
             !url.hostname.includes('.') || /^(localhost|127\.|10\.|192\.168\.)/.test(url.hostname)) {
           errors[field] = 'Se requiere una URL HTTPS pública.';
         }
-        if (field === 'apkUrl' && !/^github\.com$/i.test(url.hostname)) {
-          errors[field] = 'Solo se admiten enlaces de GitHub Releases.';
+        if (field === 'playStoreUrl' && !isOfficialPlayStoreUrl(payload[field])) {
+          errors[field] = 'Usa un enlace válido de una aplicación de Google Play.';
         }
-        if (field === 'apkUrl' &&
-            !/^\/[^/]+\/[^/]+\/releases\/download\/[^/]+\/[^/]+\.apk$/i.test(url.pathname)) {
+        if (field === 'apkUrl' && !isGithubReleasesApkUrl(payload[field])) {
           errors[field] = 'Usa el enlace directo de un APK de GitHub Releases.';
         }
       } catch { errors[field] = 'URL de descarga inválida.'; }
