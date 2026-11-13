@@ -94,11 +94,8 @@ export function validateAppPayload(payload) {
   if (!payload.shortDescription) errors.shortDescription = 'La descripción corta es obligatoria.';
   if (!payload.fullDescription) errors.fullDescription = 'La descripción completa es obligatoria.';
   if (!payload.iconUrl) errors.iconUrl = 'El icono por URL es obligatorio.';
-  // Se puede publicar una aplicación en Play Store, mediante APK directo, o ambos.
-  if (!payload.playStoreUrl && !payload.apkUrl) {
-    errors.playStoreUrl = 'Agrega un enlace de Google Play o un APK.';
-    errors.apkUrl = 'Agrega un enlace de descarga APK o Google Play.';
-  }
+  // Los enlaces de distribución son opcionales hasta que la app esté disponible.
+  // Si se proporciona uno, su destino se valida antes de guardar.
   for (const field of ['playStoreUrl', 'apkUrl']) {
     if (payload[field]) {
       try {
