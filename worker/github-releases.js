@@ -1,3 +1,4 @@
+import { handleChunkedUpload } from './github-chunked.js';
 // Cloudflare Worker: subida directa de APK a GitHub Releases.
 // Secrets: GITHUB_TOKEN. Vars: GITHUB_REPOSITORY, ADMIN_ORIGIN, FIREBASE_PROJECT_ID, ADMIN_EMAIL.
 // El token de GitHub nunca se envía al navegador.
@@ -58,6 +59,9 @@ export default {
     try {
       await verifyFirebaseToken(bearer.slice(7), env);
     } catch (_) { return json({ error: 'Sesión no autorizada.' }, 403, headers); }
+    if (request.headers.get('X-APK-Operation')) {
+      return handleChunkedUpload(request, env, { github, json, headers });
+    }
     const name = request.headers.get('X-APK-Name') || '';
     const slug = request.headers.get('X-APK-Slug') || '';
     const version = request.headers.get('X-APK-Version') || '';
