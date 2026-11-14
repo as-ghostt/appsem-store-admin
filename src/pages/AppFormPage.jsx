@@ -28,6 +28,7 @@ export default function AppFormPage({ mode }) {
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [uploadingApk, setUploadingApk] = useState(false);
+  const [apkUploadStatus, setApkUploadStatus] = useState({ message: '', percent: null, error: false });
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -72,17 +73,32 @@ export default function AppFormPage({ mode }) {
     event.target.value = '';
     if (!file) return;
     if (!form.slug || !form.currentVersion) {
-      setMessage('Completa el identificador público y la versión antes de subir el APK.');
+      setApkUploadStatus({
+        message: 'Antes de seleccionar el APK, completa el identificador público y la versión actual.',
+        percent: null,
+        error: true
+      });
       return;
     }
     setUploadingApk(true);
+    setApkUploadStatus({ message: 'Preparando archivo...', percent: 0, error: false });
     setMessage('');
     try {
-      const result = await uploadApkToReleases(file, form.slug, form.currentVersion);
+      const result = await uploadApkToReleases(file, form.slug, form.currentVersion, (progress) => {
+        setApkUploadStatus({ message: progress.phase, percent: progress.percent, error: false });
+      });
       handleChange('apkUrl', result.apkUrl);
-      setMessage('APK subido. Guarda la aplicación para publicar el enlace.');
+      setApkUploadStatus({
+        message: 'APK publicado en GitHub Releases. Pulsa Guardar app para vincular la descarga.',
+        percent: 100,
+        error: false
+      });
     } catch (error) {
-      setMessage(error.message || 'No se pudo subir el APK.');
+      setApkUploadStatus({
+        message: error.message || 'No se pudo subir el APK.',
+        percent: null,
+        error: true
+      });
     } finally {
       setUploadingApk(false);
     }
@@ -182,12 +198,20 @@ export default function AppFormPage({ mode }) {
           <Field label="Eliminación de cuenta y datos"><input value={form.accountDeletionUrl} onChange={(e) => handleChange('accountDeletionUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Reporte de seguridad y vulnerabilidades"><input value={form.securityReportUrl} onChange={(e) => handleChange('securityReportUrl', e.target.value)} placeholder="https://..." /></Field>
         </div>
+        <Field label="Versión actual"><input value={form.currentVersion} onChange={(e) => handleChange('currentVersion', e.target.value)} placeholder="1.0.0" /></Field>
         <label className="field">
           <span>Subir archivo APK a GitHub Releases</span>
           <input type="file" accept=".apk,application/vnd.android.package-archive"
             disabled={uploadingApk || saving} onChange={handleApkUpload} />
         </label>
-        {uploadingApk ? <p role="status">Subiendo APK...</p> : null}
+        {apkUploadStatus.message ? (
+          <div role="status" aria-live="polite">
+            <p className={apkUploadStatus.error ? 'field-error' : 'form-message'}>{apkUploadStatus.message}</p>
+            {uploadingApk && apkUploadStatus.percent !== null ? (
+              <progress value={apkUploadStatus.percent} max="100" aria-label="Progreso de subida del APK" style={{ width: '100%' }} />
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="surface form-section">
@@ -197,7 +221,6 @@ export default function AppFormPage({ mode }) {
           <Field label="Tamaño"><input value={form.appSize} onChange={(e) => handleChange('appSize', e.target.value)} placeholder="25 MB" /></Field>
           <Field label="Sistema operativo"><input value={form.operatingSystem} onChange={(e) => handleChange('operatingSystem', e.target.value)} /></Field>
           <Field label="Android requerido"><input value={form.minAndroidVersion} onChange={(e) => handleChange('minAndroidVersion', e.target.value)} /></Field>
-          <Field label="Versión actual"><input value={form.currentVersion} onChange={(e) => handleChange('currentVersion', e.target.value)} /></Field>
           <Field label="Última actualización"><input value={form.lastUpdate} onChange={(e) => handleChange('lastUpdate', e.target.value)} /></Field>
           <Field label="Idiomas"><input value={form.languages} onChange={(e) => handleChange('languages', e.target.value)} /></Field>
           <Field label="Uso sin conexión"><select value={form.offlineUse} onChange={(e) => handleChange('offlineUse', e.target.value)}><option value="Sí">Sí</option><option value="No">No</option></select></Field>
@@ -209,7 +232,7 @@ export default function AppFormPage({ mode }) {
         </div>
       </section>
 
-      <div className="bottom-actions"><Link className="ghost-button" to="/apps">Cancelar</Link><button className="primary-button" disabled={saving} type="submit"><Save size={18} /> {saving ? 'Guardando...' : 'Guardar app'}</button></div>
+      <div className="bottom-actions"><Link className="ghost-button" to="/apps">Cancelar</Link><button className="primary-button" disabled={saving || uploadingApk} type="submit"><Save size={18} /> {saving ? 'Guardando...' : 'Guardar app'}</button></div>
     </form>
   );
 }
