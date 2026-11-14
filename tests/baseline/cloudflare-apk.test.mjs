@@ -43,6 +43,7 @@ test('Cloudflare APK upload verifies signed Firebase identity and GitHub Release
   const jwt = content + '.' + sign('RSA-SHA256', Buffer.from(content), privateKey).toString('base64url');
   const originalFetch = globalThis.fetch;
   const calls = [];
+  let simulateGithubForbidden = false;
   globalThis.fetch = async (url, opts = {}) => {
     const target = String(url);
     calls.push(target);
@@ -50,7 +51,11 @@ test('Cloudflare APK upload verifies signed Firebase identity and GitHub Release
       return Response.json({ keys: [jwk] });
     }
     if (target === 'https://api.github.com/repos/' + repo + '/releases/tags/apk-test-app-v1.0.0') {
-      return Response.json({ message: 'Not Found' }, { status: 404 });
+      assert.equal(opts.headers['User-Agent'], 'Appsem-Store-Admin');
+      assert.equal(opts.headers.Authorization, 'Bearer synthetic-test-token');
+      return simulateGithubForbidden
+        ? Response.json({ message: 'Resource not accessible by personal access token' }, { status: 403 })
+        : Response.json({ message: 'Not Found' }, { status: 404 });
     }
     if (target === 'https://api.github.com/repos/' + repo + '/releases') {
       const data = JSON.parse(opts.body);
@@ -90,6 +95,26 @@ test('Cloudflare APK upload verifies signed Firebase identity and GitHub Release
     assert.equal(data.apkUrl, 'https://github.com/' + repo + '/releases/download/apk-test-app-v1.0.0/test-v1.apk');
     assert.equal(data.size, 4);
     assert.equal(calls.length, 4);
+
+    simulateGithubForbidden = true;
+    const denied = await onRequest({
+      request: new Request(origin + '/api/upload-apk', {
+        method: 'POST',
+        headers: {
+          Origin: origin, Authorization: 'Bearer ' + jwt,
+          'Content-Type': 'application/vnd.android.package-archive',
+          'X-APK-Name': 'test-v1.apk', 'X-APK-Slug': 'test-app',
+          'X-APK-Version': '1.0.0'
+        },
+        body: Uint8Array.from([80, 75, 3, 4])
+      }),
+      env: { GITHUB_TOKEN: 'synthetic-test-token', GITHUB_REPOSITORY: repo,
+        FIREBASE_PROJECT_ID: 'webs-8b1bf', ADMIN_EMAIL: 'eler30.mr@gmail.com' }
+    });
+    assert.equal(denied.status, 503);
+    const rejected = await denied.json();
+    assert.match(rejected.error, /HTTP 403/);
+    assert.match(rejected.error, /No necesitas cambiar la versión/);
   } finally {
     globalThis.fetch = originalFetch;
   }
