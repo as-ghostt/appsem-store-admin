@@ -31,3 +31,21 @@ La conciliación no halló discrepancias comprobables de `commentsCount`, ni est
 4. Ejecutar el plan de reconciliación únicamente sobre datos sintéticos hasta disponer de respaldo actual y revisión del informe por aplicación.
 
 **Dictamen:** integridad pública sin errores confirmados en este muestreo completo de las 5 referencias actuales; Fase 3 sigue ABIERTA por respaldo y dos revisiones históricas. Las fases 4–8 del plan maestro no se consideran automáticamente certificadas.
+
+
+## Simulación de conciliación ejecutada — 14/11/2026
+
+Se repitió el auditor contra Firebase productivo y se ejecutó `buildReconciliationDryRun` sobre los resultados, usando el módulo puro `scripts/phase3/reconciliation-plan.mjs`.
+
+| Resultado | Valor |
+| --- | ---: |
+| Apps inspeccionadas | 5 |
+| Propuestas de revisión histórica | 2 |
+| Propuestas de modificación automática de `ratingSum` | 0 |
+| Escrituras aplicadas | 0 |
+| Pruebas automatizadas aprobadas en Cloudflare | 30 |
+| Resultado de despliegue | `success` |
+
+Ambas propuestas son `rating-history-manual-review`; no se ejecutó ningún ajuste de comentarios, contadores o valoraciones. El entorno de compilación se devolvió a `npm run test:baseline && npm run build` al finalizar.
+
+**Alcance:** este dry-run confirma que la herramienta genera un plan no destructivo sobre la lectura real. No equivale a una restauración probada de la base de datos ni a una autorización para reescribir agregados.
