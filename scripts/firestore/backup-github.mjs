@@ -11,6 +11,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createArchive } from './archive.mjs';
 import { askHidden, decryptBackup, encryptBackup } from './encrypted.mjs';
+import { isAllowedBackupOrigin } from './backup-origin.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const expected = 'webs-8b1bf';
@@ -26,7 +27,7 @@ function preflight() {
     throw new Error('Uso: npm run firestore:backup:github -- --project=webs-8b1bf --confirm-read --confirm-github');
   }
   const from = command(['remote', 'get-url', 'origin']);
-  if (!/^(?:https:\/\/github\.com\/|git@github\.com:)eler30mr-star\/appsem-store-admin(?:\.git)?$/.test(from)) {
+  if (!isAllowedBackupOrigin(from)) {
     throw new Error('Origin no coincide con el repositorio GitHub Appsem Store Admin.');
   }
   if (command(['branch', '--show-current']) !== 'main') throw new Error('Ejecutar únicamente en main.');
