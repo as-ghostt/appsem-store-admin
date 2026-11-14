@@ -113,7 +113,7 @@ export function validateAppPayload(payload) {
       } catch { errors[field] = 'URL de descarga inválida.'; }
     }
   }
-  if (!payload.privacyPolicyUrl) errors.privacyPolicyUrl = 'La política de privacidad de la app es obligatoria.';
+  // Los enlaces legales también son opcionales. No bloquear apps aún no publicadas.
 
   return errors;
 }
