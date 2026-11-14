@@ -1,6 +1,6 @@
 import { backupBase64, gitBlobSha1 } from './browserBackupEncryption';
 
-const OWNER = 'eler30mr-star';
+const OWNER = 'as-ghostt';
 const REPO = 'appsem-store-admin';
 
 export async function uploadEncryptedBackupToGitHub(file, filename, personalToken) {
