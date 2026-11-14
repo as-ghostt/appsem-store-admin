@@ -165,7 +165,12 @@ export default function AppFormPage({ mode }) {
             <Field label="Slug público" error={errors.slug} required><div className="inline-field"><input value={form.slug} onChange={(e) => handleChange('slug', createSlug(e.target.value))} placeholder="biblia-universal" /><button className="ghost-button small" type="button" onClick={() => handleChange('slug', createSlug(form.title))}>Generar</button></div></Field>
           </div>
           <div className="fields-grid two">
-            <Field label="Categoría" required><select value={form.categoryKey} onChange={(e) => handleChange('categoryKey', e.target.value)}>{CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Categoría" required><select value={form.categoryKey} onChange={(e) => handleChange('categoryKey', e.target.value)}>
+              {!CATEGORIES.some((c) => c.key === form.categoryKey) && form.categoryKey ? (
+                <option value={form.categoryKey}>{getCategoryLabel(form.categoryKey)} (categoría anterior)</option>
+              ) : null}
+              {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select></Field>
             <Field label="Estado"><select value={form.status} onChange={(e) => handleChange('status', e.target.value)}><option value="draft">Oculta / borrador</option><option value="published">Publicada</option></select></Field>
           </div>
           <Field label="App destacada" hint="Actívalo para mostrarla en la sección principal de destacadas."><select value={form.featured ? 'yes' : 'no'} onChange={(e) => handleChange('featured', e.target.value === 'yes')}><option value="no">No</option><option value="yes">Sí</option></select></Field>
