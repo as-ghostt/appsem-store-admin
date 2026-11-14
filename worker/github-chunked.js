@@ -17,7 +17,7 @@ function parseMetadata(release) {
   const body = String(release?.body || '');
   if (!body.startsWith(MARKER)) return null;
   try {
-    const data = JSON.parse(body.slice(MARKER.length));
+    const data = JSON.parse(body.slice(MARKER.length).split('\n', 1)[0]);
     if (!data || data.appsemUpload !== 1 ||
       !SLUG.test(data.slug) || !VERSION.test(data.version) ||
       !APK_NAME.test(data.name) ||
@@ -149,11 +149,15 @@ async function uploadPart(github, repo, token, request) {
 }
 async function completeUpload(github, repo, token, data) {
   const id = getReleaseId(data?.uploadId);
-  const { release, meta } = await requireDraft(github, repo, token, id);
+  const release = await getRelease(github, repo, token, id);
   const assets = await getAssets(github, repo, token, id);
-  const finalAsset = assets.find(a => a.name === meta.name && a.state === 'uploaded' && a.size === meta.size);
-  if (!release.draft && finalAsset) return { ready: true, apkUrl: finalAsset.browser_download_url };
-  if (!release.draft) fail(409, 'La versión ya se publicó sin el APK esperado.');
+  if (!release.draft) {
+    const finalAsset = assets.find(a => APK_NAME.test(a.name) && a.state === 'uploaded');
+    if (finalAsset) return { ready: true, apkUrl: finalAsset.browser_download_url };
+    fail(409, 'La versión ya se publicó sin el APK esperado.');
+  }
+  const meta = parseMetadata(release);
+  if (!meta) fail(409, 'Versión de APK incompatible con la sesión de subida.');
   for (let i = 0; i < meta.parts; i++) {
     const asset = assets.find(a => a.name === partName(i));
     if (!asset || asset.state !== 'uploaded' || asset.size !== expectedPartSize(meta, i)) {
@@ -171,13 +175,15 @@ async function completeUpload(github, repo, token, data) {
 }
 async function uploadStatus(github, repo, token, data) {
   const id = getReleaseId(data?.uploadId);
-  const { release, meta } = await requireDraft(github, repo, token, id);
+  const release = await getRelease(github, repo, token, id);
   const assets = await getAssets(github, repo, token, id);
-  const final = assets.find(a => a.name === meta.name && a.state === 'uploaded' && a.size === meta.size);
-  if (final && !release.draft) {
-    return { ready: true, apkUrl: final.browser_download_url, releaseUrl: release.html_url, size: meta.size };
+  if (!release.draft) {
+    const final = assets.find(a => APK_NAME.test(a.name) && a.state === 'uploaded');
+    if (!final) fail(409, 'GitHub publicó la versión sin el APK completo.');
+    return { ready: true, apkUrl: final.browser_download_url, releaseUrl: release.html_url, size: final.size };
   }
-  if (!release.draft) fail(409, 'GitHub publicó la versión sin el APK completo.');
+  const meta = parseMetadata(release);
+  if (!meta) fail(409, 'Versión de APK incompatible con la sesión de subida.');
   if (String(release.body).includes('\nAPPSEM_ASSEMBLY_FAILED')) {
     fail(502, 'GitHub no pudo ensamblar el APK. Puedes reintentar la subida.');
   }
