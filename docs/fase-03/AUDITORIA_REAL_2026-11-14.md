@@ -75,3 +75,20 @@ Se agregó una prueba integral de recuperación aislada `tests/phase3/archive-en
 La copia de datos **actual y persistente** todavía no se ha generado ni restaurado: el entorno de ejecución de Cloudflare no es un destino seguro de almacenamiento permanente, el repositorio es público y no se configuró una clave de cifrado del propietario ni un destino privado persistente. La prueba usa una frase sintética que nunca debe emplearse para información real.
 
 **Estado de cierre:** confirmada la naturaleza de los dos hallazgos y preparado el control de recuperación. Permanecen abiertas la copia privada recuperable de noviembre y cualquier ajuste productivo de `ratingSum` condicionado a ella. No hubo escrituras de auditoría en Firestore.
+
+
+## Pruebas finales de recuperación y reparación de rutas — 14/11/2026
+
+- GitHub Actions [#43619251455](https://github.com/as-ghostt/appsem-store-admin/actions/runs/43619251455) terminó SUCCESS para el commit 5dbce177. Su job de Firebase Emulator verificó la suite Fase 3, incluida la nueva prueba de archivado, copia cifrada, descifrado, recuperación, restauración, publicación y moderación idempotente de datos sintéticos.
+- También aprobaron en CI la compatibilidad de cifrado, verificación de respaldos, reglas reforzadas e integración de Store con Firebase Emulator.
+- Se corrigió el repositorio de destino de las dos opciones existentes de respaldo: el CLI y la exportación cifrada del panel ahora apuntan a `as-ghostt/appsem-store-admin`, no al propietario antiguo `eler30mr-star`.
+- Cloudflare Production para Admin: commit `8dc5171a`, 36 pruebas aprobadas y 0 fallos. Cloudflare Production para Store: commit `09def06b`, 39 pruebas aprobadas y 0 fallos.
+- El cálculo de nuevas valoraciones de la tienda reutiliza el promedio 5 cuando `ratingCount=1` y `ratingSum=0`; la regresión de compatibilidad está cubierta por `tests/metrics-core.test.mjs`.
+
+### Condiciones restantes para cierre definitivo
+
+La recuperación cifrada de datos sintéticos está verificada en Firebase Emulator. **No se ha creado ni almacenado aún una copia actual y recuperable de Firebase productivo.** La opción `/backups` permite al administrador descargar una copia cifrada de las apps y sus subcolecciones conocidas; para una copia exhaustiva se debe emplear el exportador con Firebase Admin SDK y una contraseña privada que nunca se incluya en código o logs.
+
+Las dos diferencias históricas corresponden en ambos casos a `ratingSum=0`, una valoración de cinco estrellas, `ratingCount=1` y `ratingAverage=5`. Ningún contador ni registro real fue modificado. La decisión de corregir estos dos campos debe quedar condicionada a la existencia de una copia recuperable y a las precondiciones de una transacción.
+
+**Estado: fase 3 parcialmente cerrada en pruebas y auditoría; respaldo productivo y eventual corrección histórica pendientes.**
