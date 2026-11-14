@@ -49,3 +49,29 @@ Se repitió el auditor contra Firebase productivo y se ejecutó `buildReconcilia
 Ambas propuestas son `rating-history-manual-review`; no se ejecutó ningún ajuste de comentarios, contadores o valoraciones. El entorno de compilación se devolvió a `npm run test:baseline && npm run build` al finalizar.
 
 **Alcance:** este dry-run confirma que la herramienta genera un plan no destructivo sobre la lectura real. No equivale a una restauración probada de la base de datos ni a una autorización para reescribir agregados.
+
+
+## Diagnóstico exacto de valoraciones — 14/11/2026
+
+Se ejecutó el analizador `scripts/phase3/rating-forensics.mjs` sobre una **nueva lectura productiva de solo lectura** (mismo proyecto, sin IDs de aplicaciones ni visitantes en el registro).
+
+| Campo | Caso 1 | Caso 2 |
+| --- | ---: | ---: |
+| `ratingCount` | 1 | 1 |
+| Documentos de valoración observados | 1 | 1 |
+| `ratingSum` actual | 0 | 0 |
+| Suma observada de valoraciones | 5 | 5 |
+| Diferencia actual − observada | −5 | −5 |
+| `ratingAverage` actual | 5 | 5 |
+
+**Conclusión precisa:** ambas discrepancias corresponden a un agregado `ratingSum` almacenado en cero mientras la valoración conservada, `ratingCount` y el promedio público son consistentes con una puntuación de cinco estrellas. Es compatible con un dato heredado sin inicialización, pero esta lectura no demuestra cuándo ni por qué quedó en cero.
+
+**Corrección productiva:** no ejecutada. El plan mantiene `0` escrituras hasta verificar copia de seguridad actual y una transacción con comprobación del estado vigente. El código de la tienda ya calcula nuevas valoraciones usando el promedio histórico cuando `ratingSum` está fuera de rango; se añadió una prueba específica de este caso en `as-ghostt/appsem-store`, `tests/metrics-core.test.mjs`, commit `09def06b`.
+
+## Protección de copia y archivado
+
+Se agregó una prueba integral de recuperación aislada `tests/phase3/archive-encrypted-recovery-emulator.test.mjs` al repositorio Admin. Usa exclusivamente datos inventados en Firebase Emulator: app publicada con métricas y subcolecciones → archivado reversible → backup comprimido con SHA-256 → cifrado AES-256-GCM → descifrado y verificación → restauración → borrador → nueva publicación → moderación de comentarios idempotente. Su ejecución depende de la suite de Emulator de GitHub Actions y **no se debe confundir con la validación de una copia nueva de producción**.
+
+La copia de datos **actual y persistente** todavía no se ha generado ni restaurado: el entorno de ejecución de Cloudflare no es un destino seguro de almacenamiento permanente, el repositorio es público y no se configuró una clave de cifrado del propietario ni un destino privado persistente. La prueba usa una frase sintética que nunca debe emplearse para información real.
+
+**Estado de cierre:** confirmada la naturaleza de los dos hallazgos y preparado el control de recuperación. Permanecen abiertas la copia privada recuperable de noviembre y cualquier ajuste productivo de `ratingSum` condicionado a ella. No hubo escrituras de auditoría en Firestore.
