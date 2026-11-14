@@ -70,7 +70,6 @@ test('Fase 4: crear, editar, publicar, archivar y restaurar con Google Play/APK 
     assert.equal(updated.playStoreUrl, '');
     assert.equal(updated.apkUrl, '');
     for (const [key, value] of Object.entries(metrics)) assert.equal(updated[key], value);
-    assert.equal((await server.doc('apps/phase4-test-app/comments').get()).exists, false);
     assert.equal((await getDocs(collection(admin, 'apps/phase4-test-app/comments'))).size, 1);
     assert.equal((await getDocs(collection(admin, 'apps/phase4-test-app/ratings'))).size, 1);
   } finally {
