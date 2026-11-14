@@ -40,7 +40,7 @@ async function verifyFirebaseToken(token, env) {
 async function github(url, token, init = {}) {
   return fetch(url, { ...init, headers: {
     'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28', ...init.headers
+    'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'Appsem-Store-Admin', ...init.headers
   } });
 }
 export default {
@@ -92,7 +92,15 @@ export default {
       if (!created.ok) return json({ error: 'No se pudo crear la versión en GitHub.' }, 502, headers);
       release = await created.json();
     } else if (lookup.ok) release = await lookup.json();
-    else return json({ error: 'No se pudo consultar la versión en GitHub.' }, 502, headers);
+    else {
+      const errorData = await lookup.json().catch(() => ({}));
+      const ghMessage = String(errorData?.message || '').replace(/[\\r\\n]/g, ' ').slice(0, 140);
+      const reason = ghMessage ? ' (' + ghMessage + ')' : '';
+      return json({
+        error: 'GitHub Releases rechazó la consulta (HTTP ' + lookup.status + ')' + reason +
+          '. No necesitas cambiar la versión de la app.'
+      }, lookup.status === 401 || lookup.status === 403 ? 503 : 502, headers);
+    }
     if (release.assets?.some(a => a.name === name)) {
       return json({ error: 'Esta versión ya tiene un APK con ese nombre. Usa una versión nueva.' }, 409, headers);
     }
