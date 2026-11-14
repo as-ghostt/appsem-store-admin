@@ -62,7 +62,7 @@ jobs:
       - name: "Obtener tienda pública para integración real"
         uses: actions/checkout@v4
         with:
-          repository: eler30mr-star/appsem-store
+          repository: as-ghostt/appsem-store
           ref: 54fc6e343ac1b1da1d8d8809e47a59e536fddafc
           path: _store_phase2
           persist-credentials: false
