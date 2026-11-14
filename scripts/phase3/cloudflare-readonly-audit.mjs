@@ -15,6 +15,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { scanFirestore } from './audit-integrity.mjs';
 import { summarizeAuditForLogs } from './read-only-report.mjs';
 import { buildReconciliationDryRun, summarizeReconciliationDryRun } from './reconciliation-plan.mjs';
+import { ratingForensics } from './rating-forensics.mjs';
 
 const expectedProject = 'webs-8b1bf';
 const args = process.argv.slice(2);
@@ -45,6 +46,7 @@ try {
   process.stdout.write('APPSEM_FASE3_AUDITORIA_SOLO_LECTURA ' + JSON.stringify(report) + '\n');
   const reconciliation = summarizeReconciliationDryRun(buildReconciliationDryRun(audit));
   process.stdout.write('APPSEM_FASE3_CONCILIACION_DRY_RUN ' + JSON.stringify(reconciliation) + '\n');
+  process.stdout.write('APPSEM_FASE3_RATING_FORENSE ' + JSON.stringify(ratingForensics(audit)) + '\n');
 } finally {
   await deleteApp(app);
 }
