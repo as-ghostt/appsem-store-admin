@@ -1,5 +1,5 @@
 import { ArrowLeft, Eye, ImagePlus, Save, Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CATEGORIES, getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER, PUBLIC_STORE_URL } from '../config';
@@ -28,6 +28,8 @@ export default function AppFormPage({ mode }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [uploadingApk, setUploadingApk] = useState(false);
   const [apkUploadStatus, setApkUploadStatus] = useState({ message: '', percent: null, error: false });
   const [message, setMessage] = useState('');
@@ -67,7 +69,10 @@ export default function AppFormPage({ mode }) {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: '' }));
   };
-  const handleTitleChange = (value) => setForm((current) => ({ ...current, title: value, slug: current.slug || createSlug(value) }));
+  const handleTitleChange = (value) => {
+    setForm((current) => ({ ...current, title: value, slug: current.slug || createSlug(value) }));
+    setErrors((current) => ({ ...current, title: '', slug: '' }));
+  };
 
   const handleApkUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -103,7 +108,9 @@ export default function AppFormPage({ mode }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSaving(true); setMessage(''); setErrors({});
+    if (savingRef.current || uploadingApk) return;
+    savingRef.current = true;
+    setSaving(true); setMessage(''); setErrors({}); setSaveFailed(false);
     try {
       if (isEdit) {
         await updateApp(appId, form);
@@ -114,8 +121,12 @@ export default function AppFormPage({ mode }) {
       }
     } catch (err) {
       if (err.fields) setErrors(err.fields);
+      setSaveFailed(true);
       setMessage(err.message || 'No se pudo guardar la app.');
-    } finally { setSaving(false); }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="loader-card surface"><span className="loader" /> Cargando formulario...</div>;
@@ -135,7 +146,7 @@ export default function AppFormPage({ mode }) {
         </div>
       </section>
 
-      {message && <div className={`alert ${Object.keys(errors).length ? 'error' : 'success'}`}>{message}</div>}
+      {message && <div role={saveFailed ? 'alert' : 'status'} className={`alert ${saveFailed ? 'error' : 'success'}`}>{message}</div>}
 
       {isEdit && originalApp && (
         <section className="stats-grid compact">
