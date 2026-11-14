@@ -1,6 +1,6 @@
 import { ArrowLeft, Eye, ImagePlus, Save, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { CATEGORIES, getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER, PUBLIC_STORE_URL } from '../config';
 import { createApp, getApp, updateApp } from '../services/appsService';
@@ -8,6 +8,7 @@ import { uploadApkToReleases } from '../services/apkUpload';
 import { formatNumber, formatRating } from '../utils/formatters';
 import { createSlug } from '../utils/slug';
 import { resolveApkReleaseInfo } from '../utils/apkReleaseInfo';
+import { hasUnsavedCatalogChanges, shouldBlockCatalogNavigation } from '../utils/unsavedCatalogChanges';
 
 const initialForm = {
   title: '', slug: '', categoryKey: 'educacion', shortDescription: '', fullDescription: '',
@@ -24,6 +25,9 @@ export default function AppFormPage({ mode }) {
   const { appId } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
+  const [savedForm, setSavedForm] = useState(initialForm);
+  const allowNavigationRef = useRef(false);
+  const stayButtonRef = useRef(null);
   const [originalApp, setOriginalApp] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
@@ -41,7 +45,7 @@ export default function AppFormPage({ mode }) {
       .then((app) => {
         if (!mounted) return;
         setOriginalApp(app);
-        setForm({
+        const loadedForm = {
           title: app.title || '', slug: app.slug || '', categoryKey: app.categoryKey || 'otros',
           shortDescription: app.shortDescription || '', fullDescription: app.fullDescription || '',
           iconUrl: app.iconUrl || '', bannerUrl: app.bannerUrl || '',
@@ -57,12 +61,44 @@ export default function AppFormPage({ mode }) {
           inAppPurchases: app.inAppPurchases || 'No', ageRating: app.ageRating || '',
           price: app.price || 'Gratis', developer: app.developer || DEFAULT_DEVELOPER,
           featured: Boolean(app.featured), status: app.status || 'draft',
-        });
+        };
+        setForm(loadedForm);
+        setSavedForm(loadedForm);
       })
       .catch((err) => setMessage(err.message || 'No se pudo cargar la app.'))
       .finally(() => setLoading(false));
     return () => { mounted = false; };
   }, [appId, isEdit]);
+
+  const isDirty = !loading && hasUnsavedCatalogChanges(form, savedForm);
+  const busy = saving || uploadingApk;
+  const shouldWarn = (isDirty || busy) && !allowNavigationRef.current;
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    !allowNavigationRef.current && shouldBlockCatalogNavigation({
+      dirty: isDirty, busy,
+      currentUrl: currentLocation.pathname + currentLocation.search + currentLocation.hash,
+      nextUrl: nextLocation.pathname + nextLocation.search + nextLocation.hash
+    })
+  );
+
+  // Las recargas, cierre de pestaña o navegación fuera del sitio usan el aviso del navegador.
+  useEffect(() => {
+    if (!shouldWarn) return undefined;
+    const onBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [shouldWarn]);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') stayButtonRef.current?.focus();
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked' && !shouldWarn) blocker.reset();
+  }, [blocker, shouldWarn]);
 
   const screenshotsPreview = useMemo(() => form.screenshots.split('\n').map((item) => item.trim()).filter(Boolean), [form.screenshots]);
   const handleChange = (field, value) => {
@@ -112,11 +148,14 @@ export default function AppFormPage({ mode }) {
     savingRef.current = true;
     setSaving(true); setMessage(''); setErrors({}); setSaveFailed(false);
     try {
+      const submittedForm = { ...form };
       if (isEdit) {
-        await updateApp(appId, form);
+        await updateApp(appId, submittedForm);
+        setSavedForm(submittedForm);
         setMessage('Cambios guardados correctamente.');
       } else {
-        const result = await createApp(form);
+        const result = await createApp(submittedForm);
+        allowNavigationRef.current = true;
         navigate(`/apps/${result.id}/edit`, { replace: true });
       }
     } catch (err) {
@@ -133,6 +172,25 @@ export default function AppFormPage({ mode }) {
 
   return (
     <form className="page-stack" onSubmit={handleSubmit}>
+      {blocker.state === 'blocked' ? (
+        <div className="unsaved-dialog-backdrop">
+          <div className="unsaved-dialog" role="alertdialog" aria-modal="true"
+            aria-labelledby="unsaved-dialog-title" aria-describedby="unsaved-dialog-description">
+            <h3 id="unsaved-dialog-title">Cambios sin guardar</h3>
+            <p id="unsaved-dialog-description">
+              {busy ? 'Hay una operación en curso. ¿Salir de todas formas?' : '¿Descartar los cambios de esta app?'}
+            </p>
+            <div className="unsaved-dialog-actions">
+              <button ref={stayButtonRef} className="primary-button" type="button" onClick={() => blocker.reset()}>
+                Seguir editando
+              </button>
+              <button className="ghost-button" type="button" onClick={() => blocker.proceed()}>
+                Salir sin guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <section className="section-header spacious">
         <div>
           <Link className="back-link" to="/apps"><ArrowLeft size={17} /> Volver a apps</Link>

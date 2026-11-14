@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AdminLayout from './components/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppsPage from './pages/AppsPage';
@@ -9,27 +9,21 @@ import BackupsPage from './pages/BackupsPage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="apps" element={<AppsPage />} />
-        <Route path="apps/new" element={<AppFormPage mode="create" />} />
-        <Route path="apps/:appId/edit" element={<AppFormPage mode="edit" />} />
-        <Route path="comments" element={<CommentsPage />} />
-        <Route path="backups" element={<BackupsPage />} />
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
-  );
-}
+// El Data Router habilita el bloqueo fiable de navegación del formulario.
+export const router = createBrowserRouter([
+  { path: '/login', element: <LoginPage /> },
+  {
+    path: '/',
+    element: <ProtectedRoute><AdminLayout /></ProtectedRoute>,
+    children: [
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'apps', element: <AppsPage /> },
+      { path: 'apps/new', element: <AppFormPage mode="create" /> },
+      { path: 'apps/:appId/edit', element: <AppFormPage mode="edit" /> },
+      { path: 'comments', element: <CommentsPage /> },
+      { path: 'backups', element: <BackupsPage /> }
+    ]
+  },
+  { path: '*', element: <NotFoundPage /> }
+]);
