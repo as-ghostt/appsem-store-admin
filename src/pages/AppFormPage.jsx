@@ -189,7 +189,7 @@ export default function AppFormPage({ mode }) {
           <Field label="APK (GitHub Releases)" error={errors.apkUrl}>
             <input value={form.apkUrl} onChange={(e) => handleChange('apkUrl', e.target.value)} placeholder="https://github.com/.../releases/download/.../app.apk" />
           </Field>
-          <Field label="Política de privacidad" error={errors.privacyPolicyUrl} required><input value={form.privacyPolicyUrl} onChange={(e) => handleChange('privacyPolicyUrl', e.target.value)} placeholder="https://..." /></Field>
+          <Field label="Política de privacidad" error={errors.privacyPolicyUrl}><input value={form.privacyPolicyUrl} onChange={(e) => handleChange('privacyPolicyUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Términos de servicio"><input value={form.termsUrl} onChange={(e) => handleChange('termsUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Aviso legal"><input value={form.legalNoticeUrl} onChange={(e) => handleChange('legalNoticeUrl', e.target.value)} placeholder="https://..." /></Field>
           <Field label="Eliminación de cuenta y datos"><input value={form.accountDeletionUrl} onChange={(e) => handleChange('accountDeletionUrl', e.target.value)} placeholder="https://..." /></Field>
