@@ -1,4 +1,4 @@
-import { backupBase64, gitBlobSha1 } from './browserBackupEncryption';
+import { backupBase64, gitBlobSha1 } from './browserBackupEncryption.js';
 
 const OWNER = 'as-ghostt';
 const REPO = 'appsem-store-admin';
