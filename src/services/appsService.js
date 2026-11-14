@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -8,12 +7,13 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER } from '../config';
 import { isOfficialPlayStoreUrl, isGithubReleasesApkUrl } from '../utils/downloadLinks';
+import { isValidCatalogSlug } from '../utils/catalogSlug.js';
+import { createCatalogApp, updateCatalogApp } from './catalogTransactions';
 import {
   moderateCommentAtomic, archiveAppAtomic, restoreAppAtomic, updatePublicationAtomic
 } from './phase3Transactions';
@@ -90,7 +90,8 @@ export function validateAppPayload(payload) {
   const errors = {};
 
   if (!payload.title) errors.title = 'El nombre de la app es obligatorio.';
-  if (!payload.slug) errors.slug = 'El slug es obligatorio.';
+  if (!payload.slug) errors.slug = 'El identificador público es obligatorio.';
+  else if (!isValidCatalogSlug(payload.slug)) errors.slug = 'Usa letras minúsculas, números y guiones (máximo 80 caracteres).';
   if (!payload.shortDescription) errors.shortDescription = 'La descripción corta es obligatoria.';
   if (!payload.fullDescription) errors.fullDescription = 'La descripción completa es obligatoria.';
   if (!payload.iconUrl) errors.iconUrl = 'El icono por URL es obligatorio.';
@@ -150,7 +151,7 @@ export async function createApp(formData) {
     throw error;
   }
 
-  return addDoc(appsRef, payload);
+  return createCatalogApp(db, payload);
 }
 
 export async function updateApp(appId, formData) {
@@ -163,17 +164,7 @@ export async function updateApp(appId, formData) {
     throw error;
   }
 
-  // Una URL directa al editor no debe permitir volver a publicar una app
-  // archivada sin pasar por la operación explícita de restauración.
-  const appRef = doc(db, 'apps', appId);
-  return runTransaction(db, async (tx) => {
-    const snapshot = await tx.get(appRef);
-    if (!snapshot.exists()) throw new Error('La aplicación ya no existe.');
-    if (snapshot.data().status === 'archived') {
-      throw new Error('Primero restaura la aplicación archivada a borrador.');
-    }
-    tx.update(appRef, payload);
-  });
+  return updateCatalogApp(db, appId, payload);
 }
 
 export async function archiveApp(appId) {
