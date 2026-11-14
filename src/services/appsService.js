@@ -13,6 +13,7 @@ import { getCategoryLabel } from '../data/categories';
 import { DEFAULT_DEVELOPER } from '../config';
 import { isOfficialPlayStoreUrl, isGithubReleasesApkUrl } from '../utils/downloadLinks';
 import { isValidCatalogSlug } from '../utils/catalogSlug.js';
+import { isPublicHttpsUrl } from '../utils/publicLinks.js';
 import { createCatalogApp, updateCatalogApp } from './catalogTransactions';
 import {
   moderateCommentAtomic, archiveAppAtomic, restoreAppAtomic, updatePublicationAtomic
@@ -115,6 +116,27 @@ export function validateAppPayload(payload) {
     }
   }
   // Los enlaces legales también son opcionales. No bloquear apps aún no publicadas.
+  // Todas las URLs son opcionales salvo el icono, según el formulario.
+  // Una URL proporcionada debe ser HTTPS pública: nunca javascript:, data:,
+  // rutas locales, direcciones privadas ni credenciales embebidas.
+  const optionalUrls = [
+    'bannerUrl', 'privacyPolicyUrl', 'termsUrl', 'legalNoticeUrl',
+    'accountDeletionUrl', 'securityReportUrl'
+  ];
+  if (payload.iconUrl && !isPublicHttpsUrl(payload.iconUrl)) {
+    errors.iconUrl = 'El icono necesita una URL HTTPS pública válida.';
+  }
+  for (const field of optionalUrls) {
+    if (payload[field] && !isPublicHttpsUrl(payload[field])) {
+      errors[field] = 'Indica una URL HTTPS pública válida o deja el campo vacío.';
+    }
+  }
+  for (const value of payload.screenshots || []) {
+    if (!isPublicHttpsUrl(value)) {
+      errors.screenshots = 'Cada captura debe tener su propia URL HTTPS pública válida.';
+      break;
+    }
+  }
 
   return errors;
 }

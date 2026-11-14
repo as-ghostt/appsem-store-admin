@@ -176,9 +176,9 @@ export default function AppFormPage({ mode }) {
         <div className="section-title"><ImagePlus size={19} /><h3>Imágenes por URL</h3></div>
         <div className="fields-grid two">
           <Field label="Icono URL" error={errors.iconUrl} required><input value={form.iconUrl} onChange={(e) => handleChange('iconUrl', e.target.value)} placeholder="https://.../icon.png" /></Field>
-          <Field label="Banner URL"><input value={form.bannerUrl} onChange={(e) => handleChange('bannerUrl', e.target.value)} placeholder="https://.../banner.png" /></Field>
+          <Field label="Banner URL" error={errors.bannerUrl}><input value={form.bannerUrl} onChange={(e) => handleChange('bannerUrl', e.target.value)} placeholder="https://.../banner.png" /></Field>
         </div>
-        <Field label="Capturas de pantalla" hint="Pega una URL por línea."><textarea rows="6" value={form.screenshots} onChange={(e) => handleChange('screenshots', e.target.value)} /></Field>
+        <Field label="Capturas de pantalla" error={errors.screenshots} hint="Pega una URL por línea."><textarea rows="6" value={form.screenshots} onChange={(e) => handleChange('screenshots', e.target.value)} /></Field>
         {screenshotsPreview.length > 0 && <div className="screenshot-strip">{screenshotsPreview.map((url) => <img src={url} alt="Captura" key={url} />)}</div>}
       </section>
 
@@ -190,10 +190,10 @@ export default function AppFormPage({ mode }) {
             <input value={form.apkUrl} onChange={(e) => handleChange('apkUrl', e.target.value)} placeholder="https://github.com/.../releases/download/.../app.apk" />
           </Field>
           <Field label="Política de privacidad" error={errors.privacyPolicyUrl}><input value={form.privacyPolicyUrl} onChange={(e) => handleChange('privacyPolicyUrl', e.target.value)} placeholder="https://..." /></Field>
-          <Field label="Términos de servicio"><input value={form.termsUrl} onChange={(e) => handleChange('termsUrl', e.target.value)} placeholder="https://..." /></Field>
-          <Field label="Aviso legal"><input value={form.legalNoticeUrl} onChange={(e) => handleChange('legalNoticeUrl', e.target.value)} placeholder="https://..." /></Field>
-          <Field label="Eliminación de cuenta y datos"><input value={form.accountDeletionUrl} onChange={(e) => handleChange('accountDeletionUrl', e.target.value)} placeholder="https://..." /></Field>
-          <Field label="Reporte de seguridad y vulnerabilidades"><input value={form.securityReportUrl} onChange={(e) => handleChange('securityReportUrl', e.target.value)} placeholder="https://..." /></Field>
+          <Field label="Términos de servicio" error={errors.termsUrl}><input value={form.termsUrl} onChange={(e) => handleChange('termsUrl', e.target.value)} placeholder="https://..." /></Field>
+          <Field label="Aviso legal" error={errors.legalNoticeUrl}><input value={form.legalNoticeUrl} onChange={(e) => handleChange('legalNoticeUrl', e.target.value)} placeholder="https://..." /></Field>
+          <Field label="Eliminación de cuenta y datos" error={errors.accountDeletionUrl}><input value={form.accountDeletionUrl} onChange={(e) => handleChange('accountDeletionUrl', e.target.value)} placeholder="https://..." /></Field>
+          <Field label="Reporte de seguridad y vulnerabilidades" error={errors.securityReportUrl}><input value={form.securityReportUrl} onChange={(e) => handleChange('securityReportUrl', e.target.value)} placeholder="https://..." /></Field>
         </div>
         <Field label="Versión actual"><input value={form.currentVersion} onChange={(e) => handleChange('currentVersion', e.target.value)} placeholder="1.0.0" /></Field>
         <label className="field">
