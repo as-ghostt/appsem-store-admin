@@ -7,6 +7,7 @@ import { createApp, getApp, updateApp } from '../services/appsService';
 import { uploadApkToReleases } from '../services/apkUpload';
 import { formatNumber, formatRating } from '../utils/formatters';
 import { createSlug } from '../utils/slug';
+import { resolveApkReleaseInfo } from '../utils/apkReleaseInfo';
 
 const initialForm = {
   title: '', slug: '', categoryKey: 'educacion', shortDescription: '', fullDescription: '',
@@ -72,19 +73,15 @@ export default function AppFormPage({ mode }) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!form.slug || !form.currentVersion) {
-      setApkUploadStatus({
-        message: 'Antes de seleccionar el APK, completa el identificador público y la versión actual.',
-        percent: null,
-        error: true
-      });
-      return;
-    }
     setUploadingApk(true);
     setApkUploadStatus({ message: 'Preparando archivo...', percent: 0, error: false });
     setMessage('');
     try {
-      const result = await uploadApkToReleases(file, form.slug, form.currentVersion, (progress) => {
+      // La subida utiliza un identificador de la ficha o del propio archivo.
+      // Si falta la versión visible, se crea una etiqueta técnica estable;
+      // no se inventa ni modifica la versión que se muestra en la tienda.
+      const { slug, version } = resolveApkReleaseInfo(form, file, originalApp);
+      const result = await uploadApkToReleases(file, slug, version, (progress) => {
         setApkUploadStatus({ message: progress.phase, percent: progress.percent, error: false });
       });
       handleChange('apkUrl', result.apkUrl);
