@@ -32,9 +32,13 @@ export function commentsCatalogKey(apps = []) {
 
 export function newestCommentsFirst(comments) {
   return [...comments].sort((a, b) => {
-    const aTime = (a.createdAt?.seconds || 0) * 1e9 + (a.createdAt?.nanoseconds || 0);
-    const bTime = (b.createdAt?.seconds || 0) * 1e9 + (b.createdAt?.nanoseconds || 0);
-    return bTime - aTime;
+    // No multiplicar epoch.seconds por 1e9: supera Number.MAX_SAFE_INTEGER.
+    const seconds = (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    if (seconds) return seconds;
+    const nanos = (b.createdAt?.nanoseconds || 0) - (a.createdAt?.nanoseconds || 0);
+    if (nanos) return nanos;
+    const appIdOrder = String(a.appId || '').localeCompare(String(b.appId || ''));
+    return appIdOrder || String(a.id || '').localeCompare(String(b.id || ''));
   });
 }
 
