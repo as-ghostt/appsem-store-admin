@@ -47,6 +47,7 @@ try {
   const reconciliation = summarizeReconciliationDryRun(buildReconciliationDryRun(audit));
   process.stdout.write('APPSEM_FASE3_CONCILIACION_DRY_RUN ' + JSON.stringify(reconciliation) + '\n');
   process.stdout.write('APPSEM_FASE3_RATING_FORENSE ' + JSON.stringify(ratingForensics(audit)) + '\n');
+  process.stdout.write('APPSEM_FASE4_SLUG_AUDITORIA_SOLO_LECTURA ' + JSON.stringify(audit.catalogSlugs) + '\n');
 } finally {
   await deleteApp(app);
 }

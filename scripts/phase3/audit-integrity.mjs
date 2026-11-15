@@ -8,6 +8,7 @@ import { createHmac } from 'node:crypto';
 import { applicationDefault, initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { auditAppIntegrity, summarizeIntegrity } from './integrity-core.mjs';
+import { auditCatalogSlugs } from './catalog-slug-audit.mjs';
 
 const KNOWN = ['comments', 'likes', 'ratings', 'downloadClicks', 'downloads'];
 const DEMO_PROJECT = 'demo-appsem-phase3';
@@ -48,8 +49,11 @@ export async function scanFirestore(db, { project, emulator, key, maxApps = 500,
     throw Error('La cantidad de apps excede --max-apps. Reporte no generado.');
   }
   const rows = [];
+  const slugInventory = [];
   for (const ref of references) {
     const [app, subcollections] = await Promise.all([ref.get(), ref.listCollections()]);
+    // El identificador original solo se utiliza en memoria para contar colisiones.
+    slugInventory.push({ id: ref.id, exists: app.exists, slug: app.exists ? app.data().slug : undefined });
     const available = new Set(subcollections.map(c => c.id));
     const events = {};
     for (const name of KNOWN) {
@@ -70,7 +74,8 @@ export async function scanFirestore(db, { project, emulator, key, maxApps = 500,
       events, unknownCollections: subcollections.filter(c => !KNOWN.includes(c.id)).length
     }));
   }
-  return summarizeIntegrity(rows, project, emulator ? 'emulator' : 'production-read-only');
+  const report = summarizeIntegrity(rows, project, emulator ? 'emulator' : 'production-read-only');
+  return { ...report, catalogSlugs: auditCatalogSlugs(slugInventory) };
 }
 
 async function main() {
