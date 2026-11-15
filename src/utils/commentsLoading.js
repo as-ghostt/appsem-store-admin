@@ -37,3 +37,12 @@ export function newestCommentsFirst(comments) {
     return bTime - aTime;
   });
 }
+
+/** Fusiona lotes sin duplicar documentos, incluso si cambió su moderación. */
+export function mergeCommentPages(existing, incoming) {
+  const byId = new Map();
+  for (const comment of [...existing, ...incoming]) {
+    byId.set(JSON.stringify([comment.appId, comment.id]), comment);
+  }
+  return newestCommentsFirst([...byId.values()]);
+}
