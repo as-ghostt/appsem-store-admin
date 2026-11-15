@@ -1111,3 +1111,17 @@ tr:last-child td {
   .nav-link, .icon-button, .primary-button, .ghost-button,
   .success-button, .danger-button { transition: none; }
 }
+
+/* Navegación incremental del histórico de comentarios. */
+.comments-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 0 24px;
+}
+.comments-pagination small { color: var(--muted); }
+@media (max-width: 720px) {
+  .comments-pagination .ghost-button { width: 100%; }
+}
