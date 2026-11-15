@@ -1035,3 +1035,15 @@ tr:last-child td {
   .unsaved-dialog { padding: 20px; }
   .unsaved-dialog-actions { flex-direction: column; }
 }
+
+/* Marcador de imagen externa inaccesible en la vista previa administrativa. */
+.screenshot-strip .preview-screenshot.empty {
+  height: 220px;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-2);
+}

@@ -9,6 +9,8 @@ import { formatNumber, formatRating } from '../utils/formatters';
 import { createSlug } from '../utils/slug';
 import { resolveApkReleaseInfo } from '../utils/apkReleaseInfo';
 import { hasUnsavedCatalogChanges, shouldBlockCatalogNavigation } from '../utils/unsavedCatalogChanges';
+import { publishedCatalogPreviewSlug } from '../utils/publishedCatalogPreview.js';
+import PreviewMedia from '../components/PreviewMedia';
 
 const initialForm = {
   title: '', slug: '', categoryKey: 'educacion', shortDescription: '', fullDescription: '',
@@ -200,7 +202,7 @@ export default function AppFormPage({ mode }) {
           <p>Completa la información que se mostrará en la página pública de la tienda.</p>
         </div>
         <div className="header-actions">
-          {form.slug && <a className="ghost-button" href={`${PUBLIC_STORE_URL}/app/${form.slug}`} target="_blank" rel="noreferrer"><Eye size={17} /> Vista pública</a>}
+          {publishedCatalogPreviewSlug(isEdit, originalApp, form.slug) && <a className="ghost-button" href={`${PUBLIC_STORE_URL}/app/${originalApp.slug}`} target="_blank" rel="noreferrer"><Eye size={17} /> Vista pública</a>}
           <button className="primary-button" disabled={saving || uploadingApk} type="submit"><Save size={18} /> {saving ? 'Guardando...' : 'Guardar app'}</button>
         </div>
       </section>
@@ -210,7 +212,7 @@ export default function AppFormPage({ mode }) {
       {isEdit && originalApp && (
         <section className="stats-grid compact">
           <article className="stat-card"><span>Me gusta</span><strong>{formatNumber(originalApp.likesCount)}</strong><small>Solo lectura</small></article>
-          <article className="stat-card"><span>Descargas</span><strong>{formatNumber(originalApp.downloadsCount)}</strong><small>Clics hacia Play Store</small></article>
+          <article className="stat-card"><span>Descargas</span><strong>{formatNumber(originalApp.downloadsCount)}</strong><small>Clics de descarga</small></article>
           <article className="stat-card"><span>Valoración</span><strong>⭐ {formatRating(originalApp)}</strong><small>{formatNumber(originalApp.ratingCount)} votos</small></article>
           <article className="stat-card"><span>Comentarios</span><strong>{formatNumber(originalApp.commentsCount)}</strong><small>Aprobados</small></article>
         </section>
@@ -235,8 +237,8 @@ export default function AppFormPage({ mode }) {
         <aside className="surface preview-panel">
           <span className="eyebrow">Vista rápida</span>
           <div className="app-preview-card">
-            {form.bannerUrl ? <img className="preview-banner" src={form.bannerUrl} alt="Banner" /> : <div className="preview-banner empty"><ImagePlus size={26} /> Banner</div>}
-            <div className="preview-info">{form.iconUrl ? <img className="preview-icon" src={form.iconUrl} alt="Icono" /> : <div className="preview-icon empty">AS</div>}<div><h3>{form.title || 'Nombre de la app'}</h3><p>{getCategoryLabel(form.categoryKey)}</p></div></div>
+            <PreviewMedia kind="banner" src={form.bannerUrl} alt="Banner" />
+            <div className="preview-info"><PreviewMedia kind="icon" src={form.iconUrl} alt="Icono" /><div><h3>{form.title || 'Nombre de la app'}</h3><p>{getCategoryLabel(form.categoryKey)}</p></div></div>
             <p>{form.shortDescription || 'Aquí se verá la descripción corta de la app.'}</p>
           </div>
         </aside>
@@ -249,7 +251,7 @@ export default function AppFormPage({ mode }) {
           <Field label="Banner URL" error={errors.bannerUrl}><input value={form.bannerUrl} onChange={(e) => handleChange('bannerUrl', e.target.value)} placeholder="https://.../banner.png" /></Field>
         </div>
         <Field label="Capturas de pantalla" error={errors.screenshots} hint="Pega una URL por línea."><textarea rows="6" value={form.screenshots} onChange={(e) => handleChange('screenshots', e.target.value)} /></Field>
-        {screenshotsPreview.length > 0 && <div className="screenshot-strip">{screenshotsPreview.map((url) => <img src={url} alt="Captura" key={url} />)}</div>}
+        {screenshotsPreview.length > 0 && <div className="screenshot-strip">{screenshotsPreview.map((url) => <PreviewMedia kind="screenshot" src={url} alt="Captura" key={url} />)}</div>}
       </section>
 
       <section className="surface form-section">
