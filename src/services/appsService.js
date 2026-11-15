@@ -176,7 +176,7 @@ export async function createApp(formData) {
   return createCatalogApp(db, payload);
 }
 
-export async function updateApp(appId, formData) {
+export async function updateApp(appId, formData, whenOpened = null) {
   const payload = buildAppPayload(formData, 'edit');
   const errors = validateAppPayload(payload);
 
@@ -186,7 +186,7 @@ export async function updateApp(appId, formData) {
     throw error;
   }
 
-  return updateCatalogApp(db, appId, payload);
+  return updateCatalogApp(db, appId, payload, whenOpened);
 }
 
 export async function archiveApp(appId) {

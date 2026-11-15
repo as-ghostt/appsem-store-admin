@@ -150,7 +150,8 @@ export default function AppFormPage({ mode }) {
     try {
       const submittedForm = { ...form };
       if (isEdit) {
-        await updateApp(appId, submittedForm);
+        const savedDocument = await updateApp(appId, submittedForm, originalApp);
+        setOriginalApp((current) => current ? { ...current, ...savedDocument } : current);
         setSavedForm(submittedForm);
         setMessage('Cambios guardados correctamente.');
       } else {

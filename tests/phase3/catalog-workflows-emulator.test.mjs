@@ -102,3 +102,56 @@ test('Fase 4: slug histórico con ID automático no puede duplicarse', async () 
     await deleteApp(app);
   }
 });
+
+test('Fase 4: una sesión desactualizada no sobrescribe la edición de otra sesión', async () => {
+  const env = await initializeTestEnvironment({ projectId, firestore: {
+    host: '127.0.0.1', port: 8080, rules
+  } });
+  const app = initializeApp({ projectId }, 'catalog-phase4-stale-editor');
+  const db = getFirestore(app);
+  const first = env.authenticatedContext('editor-first', {
+    email: 'eler30.mr@gmail.com', email_verified: true
+  }).firestore();
+  const second = env.authenticatedContext('editor-second', {
+    email: 'eler30.mr@gmail.com', email_verified: true
+  }).firestore();
+  try {
+    await env.clearFirestore();
+    const original = { title: 'Primera edición', slug: 'stale-editor-test',
+      status: 'draft', categoryKey: 'herramientas', apkUrl: '',
+      screenshots: ['https://example.com/old.png'], likesCount: 2 };
+    await db.doc('apps/stale-editor-test').set(original);
+    const firstSnapshot = (await db.doc('apps/stale-editor-test').get()).data();
+    const secondSnapshot = (await db.doc('apps/stale-editor-test').get()).data();
+
+    const saved = await updateCatalogApp(first, 'stale-editor-test', {
+      title: 'Edición conservada', slug: 'stale-editor-test',
+      status: 'draft', categoryKey: 'herramientas',
+      apkUrl: 'https://github.com/as-ghostt/appsem-store/releases/download/v1/app.apk'
+    }, firstSnapshot);
+    assert.equal(saved.title, 'Edición conservada');
+    await assert.rejects(
+      updateCatalogApp(second, 'stale-editor-test', {
+        title: 'Edición obsoleta', slug: 'stale-editor-test',
+        status: 'draft', categoryKey: 'herramientas', apkUrl: ''
+      }, secondSnapshot),
+      /modificada en otra sesión/
+    );
+    let existing = (await db.doc('apps/stale-editor-test').get()).data();
+    assert.equal(existing.title, 'Edición conservada');
+    assert.match(existing.apkUrl, /releases\/download/);
+    // Los datos de interacción se actualizan con independencia de la ficha.
+    await db.doc('apps/stale-editor-test').update({ likesCount: 7 });
+    await updateCatalogApp(first, 'stale-editor-test', {
+      title: 'Nueva descripción', slug: 'stale-editor-test', status: 'draft',
+      categoryKey: 'herramientas', apkUrl: existing.apkUrl
+    }, { ...saved, likesCount: 2 });
+    existing = (await db.doc('apps/stale-editor-test').get()).data();
+    assert.equal(existing.title, 'Nueva descripción');
+    assert.equal(existing.likesCount, 7);
+  } finally {
+    await env.clearFirestore();
+    await env.cleanup();
+    await deleteApp(app);
+  }
+});

@@ -11,6 +11,7 @@
  */
 import { collection, doc, getDocs, limit, query, runTransaction, where } from 'firebase/firestore';
 import { isValidCatalogSlug } from '../utils/catalogSlug.js';
+import { conflictingCatalogFields } from '../utils/catalogEditConflict.js';
 
 function conflict() {
   const error = new Error('Ese identificador público ya pertenece a otra aplicación.');
@@ -41,7 +42,7 @@ export async function createCatalogApp(db, payload) {
   return target;
 }
 
-export async function updateCatalogApp(db, appId, payload) {
+export async function updateCatalogApp(db, appId, payload, whenOpened = null) {
   if (!appId || typeof appId !== 'string') throw Error('ID de aplicación inválido.');
   await assertSlugAvailable(db, payload.slug, appId);
   const ref = doc(db, 'apps', appId);
@@ -51,6 +52,11 @@ export async function updateCatalogApp(db, appId, payload) {
     if (current.data().status === 'archived') {
       throw Error('Primero restaura la aplicación archivada a borrador.');
     }
+    // Se comprueba dentro de la misma transacción: si otra sesión editó
+    // la ficha después de abrir el formulario, nunca se pisan sus cambios.
+    if (whenOpened && conflictingCatalogFields(current.data(), whenOpened).length) {
+      throw Error('Esta aplicación fue modificada en otra sesión. Vuelve a abrirla antes de guardar.');
+    }
     // También impide que una edición reutilice un slug reclamado por una
     // creación concurrente moderna (ID = slug) desde el preflight.
     if (appId !== payload.slug) {
@@ -59,5 +65,9 @@ export async function updateCatalogApp(db, appId, payload) {
       if (canonical.exists() && canonical.data().slug === payload.slug) throw conflict();
     }
     tx.update(ref, payload);
+    // Refleja exactamente los campos guardados; no se necesitan lecturas
+    // adicionales que podrían captar modificaciones de otra sesión.
+    const { updatedAt: _serverTimestamp, ...savedFields } = payload;
+    return { ...current.data(), ...savedFields };
   });
 }
