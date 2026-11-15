@@ -1,37 +1,45 @@
 import { CheckCircle2, MessageSquareText, RefreshCw, Search, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { approveComment, hideComment, loadAllComments, removeComment, subscribeToApps } from '../services/appsService';
+import { approveComment, hideComment, loadCommentsPage, removeComment, subscribeToApps } from '../services/appsService';
 import { formatDate } from '../utils/formatters';
-import { commentsCatalogKey } from '../utils/commentsLoading.js';
+import { commentsCatalogKey, mergeCommentPages } from '../utils/commentsLoading.js';
 
 export default function CommentsPage() {
-  const [apps, setApps] = useState([]);
   const [comments, setComments] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [queryText, setQueryText] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
   const catalogKeyRef = useRef(null);
   const requestRef = useRef(0);
+  const cursorsRef = useRef({});
+  const appsRef = useRef([]);
 
 
   useEffect(() => {
     let active = true;
     const unsubscribe = subscribeToApps(
       (items) => {
-        setApps(items);
+        appsRef.current = items;
         const key = commentsCatalogKey(items);
-        // La actualización de likes, descargas o valoraciones no cambia
-        // ni el catálogo de comentarios ni los títulos de sus aplicaciones.
+        // Cambios de likes o descargas no reinician la paginación.
         if (key === catalogKeyRef.current) return;
         catalogKeyRef.current = key;
         const request = ++requestRef.current;
         setLoading(true);
+        setRefreshing(false);
+        setLoadingMore(false);
         setError('');
-        loadAllComments(items)
-          .then((result) => {
-            if (active && request === requestRef.current) setComments(result);
+
+        loadCommentsPage(items)
+          .then((page) => {
+            if (!active || request !== requestRef.current) return;
+            cursorsRef.current = page.cursors;
+            setComments(page.comments);
+            setHasMore(page.hasMore);
           })
           .catch((err) => {
             if (active && request === requestRef.current) {
@@ -48,25 +56,26 @@ export default function CommentsPage() {
         setLoading(false);
       }
     );
-
     return () => {
       active = false;
       requestRef.current += 1;
+      catalogKeyRef.current = null;
       unsubscribe();
     };
   }, []);
 
   const refreshComments = async () => {
-    if (refreshing) return;
     const request = ++requestRef.current;
     setRefreshing(true);
+    setLoadingMore(false);
     setError('');
     try {
-      const result = await loadAllComments(apps);
-      if (request === requestRef.current) {
-        setComments(result);
-        setLoading(false);
-      }
+      const page = await loadCommentsPage(appsRef.current);
+      if (request !== requestRef.current) return;
+      cursorsRef.current = page.cursors;
+      setComments(page.comments);
+      setHasMore(page.hasMore);
+      setLoading(false);
     } catch (err) {
       if (request === requestRef.current) {
         setError(err.message || 'No se pudieron actualizar los comentarios.');
@@ -74,6 +83,26 @@ export default function CommentsPage() {
       }
     } finally {
       if (request === requestRef.current) setRefreshing(false);
+    }
+  };
+
+  const loadMoreComments = async () => {
+    if (!hasMore || loading || refreshing || loadingMore) return;
+    const request = ++requestRef.current;
+    setLoadingMore(true);
+    setError('');
+    try {
+      const page = await loadCommentsPage(appsRef.current, cursorsRef.current);
+      if (request !== requestRef.current) return;
+      cursorsRef.current = page.cursors;
+      setComments((previous) => mergeCommentPages(previous, page.comments));
+      setHasMore(page.hasMore);
+    } catch (err) {
+      if (request === requestRef.current) {
+        setError(err.message || 'No se pudo cargar el siguiente grupo de comentarios.');
+      }
+    } finally {
+      if (request === requestRef.current) setLoadingMore(false);
     }
   };
 
@@ -128,7 +157,7 @@ export default function CommentsPage() {
           <h2>Comentarios de usuarios</h2>
           <p>Los comentarios nuevos entran pendientes y solo se muestran en la tienda cuando los apruebas.</p>
         </div>
-        <button className="ghost-button" onClick={refreshComments} disabled={refreshing} type="button">
+        <button className="ghost-button" onClick={refreshComments} disabled={refreshing || loading || loadingMore} type="button">
           <RefreshCw size={17} />
           {refreshing ? 'Actualizando...' : 'Actualizar'}
         </button>
@@ -155,7 +184,7 @@ export default function CommentsPage() {
           <div className="surface empty-card">
             <MessageSquareText size={34} />
             <h3>No hay comentarios</h3>
-            <p>No se encontraron comentarios con el filtro seleccionado.</p>
+            <p>{hasMore ? 'No hay coincidencias entre los comentarios cargados.' : 'No se encontraron comentarios con el filtro seleccionado.'}</p>
           </div>
         ) : (
           filteredComments.map((comment) => (
@@ -182,6 +211,15 @@ export default function CommentsPage() {
           ))
         )}
       </section>
+      {hasMore && !loading ? (
+        <div className="comments-pagination">
+          <button className="ghost-button" type="button"
+            onClick={loadMoreComments} disabled={loadingMore || refreshing}>
+            {loadingMore ? 'Cargando...' : 'Cargar más comentarios'}
+          </button>
+          <small>Los filtros se aplican a los comentarios cargados.</small>
+        </div>
+      ) : null}
     </div>
   );
 }
