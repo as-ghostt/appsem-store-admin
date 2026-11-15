@@ -1047,3 +1047,67 @@ tr:last-child td {
   border-radius: 18px;
   background: var(--surface-2);
 }
+
+
+/* Acceso móvil a cerrar sesión: la barra lateral oculta su pie en <=1100px. */
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mobile-signout {
+  display: none;
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 1200;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #ffffff;
+  background: var(--sidebar);
+  font-weight: 700;
+}
+.skip-link:focus { top: 12px; }
+#admin-main:focus { outline: none; }
+
+.nav-link:focus-visible,
+.icon-button:focus-visible,
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+.success-button:focus-visible,
+.danger-button:focus-visible,
+.field input:focus-visible,
+.field textarea:focus-visible,
+.field select:focus-visible,
+.filters-bar select:focus-visible,
+.search-field input:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 1100px) {
+  .topbar-tools { flex-wrap: wrap; }
+  .mobile-signout { display: inline-flex; min-height: 44px; }
+}
+
+@media (max-width: 720px) {
+  .topbar-tools { width: 100%; justify-content: flex-start; }
+  .topbar-tools .mobile-signout { width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link, .icon-button, .primary-button, .ghost-button,
+  .success-button, .danger-button { transition: none; }
+}
