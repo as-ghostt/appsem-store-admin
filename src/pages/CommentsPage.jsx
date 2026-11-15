@@ -1,7 +1,8 @@
 import { CheckCircle2, MessageSquareText, RefreshCw, Search, Trash2, XCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { approveComment, hideComment, loadAllComments, removeComment, subscribeToApps } from '../services/appsService';
 import { formatDate } from '../utils/formatters';
+import { commentsCatalogKey } from '../utils/commentsLoading.js';
 
 export default function CommentsPage() {
   const [apps, setApps] = useState([]);
@@ -11,39 +12,68 @@ export default function CommentsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const catalogKeyRef = useRef(null);
+  const requestRef = useRef(0);
+
 
   useEffect(() => {
+    let active = true;
     const unsubscribe = subscribeToApps(
-      async (items) => {
+      (items) => {
         setApps(items);
-        try {
-          const result = await loadAllComments(items);
-          setComments(result);
-        } catch (err) {
-          setError(err.message || 'No se pudieron cargar los comentarios.');
-        } finally {
-          setLoading(false);
-        }
+        const key = commentsCatalogKey(items);
+        // La actualización de likes, descargas o valoraciones no cambia
+        // ni el catálogo de comentarios ni los títulos de sus aplicaciones.
+        if (key === catalogKeyRef.current) return;
+        catalogKeyRef.current = key;
+        const request = ++requestRef.current;
+        setLoading(true);
+        setError('');
+        loadAllComments(items)
+          .then((result) => {
+            if (active && request === requestRef.current) setComments(result);
+          })
+          .catch((err) => {
+            if (active && request === requestRef.current) {
+              setError(err.message || 'No se pudieron cargar los comentarios.');
+            }
+          })
+          .finally(() => {
+            if (active && request === requestRef.current) setLoading(false);
+          });
       },
       (err) => {
+        if (!active) return;
         setError(err.message || 'No se pudieron cargar las apps.');
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      active = false;
+      requestRef.current += 1;
+      unsubscribe();
+    };
   }, []);
 
   const refreshComments = async () => {
+    if (refreshing) return;
+    const request = ++requestRef.current;
     setRefreshing(true);
     setError('');
     try {
       const result = await loadAllComments(apps);
-      setComments(result);
+      if (request === requestRef.current) {
+        setComments(result);
+        setLoading(false);
+      }
     } catch (err) {
-      setError(err.message || 'No se pudieron actualizar los comentarios.');
+      if (request === requestRef.current) {
+        setError(err.message || 'No se pudieron actualizar los comentarios.');
+        setLoading(false);
+      }
     } finally {
-      setRefreshing(false);
+      if (request === requestRef.current) setRefreshing(false);
     }
   };
 
