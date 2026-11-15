@@ -10,6 +10,7 @@ import { createSlug } from '../utils/slug';
 import { resolveApkReleaseInfo } from '../utils/apkReleaseInfo';
 import { hasUnsavedCatalogChanges, shouldBlockCatalogNavigation } from '../utils/unsavedCatalogChanges';
 import { publishedCatalogPreviewSlug } from '../utils/publishedCatalogPreview.js';
+import { handleUnsavedDialogKey } from '../utils/unsavedDialogKeyboard.js';
 import PreviewMedia from '../components/PreviewMedia';
 
 const initialForm = {
@@ -30,6 +31,7 @@ export default function AppFormPage({ mode }) {
   const [savedForm, setSavedForm] = useState(initialForm);
   const allowNavigationRef = useRef(false);
   const stayButtonRef = useRef(null);
+  const leaveButtonRef = useRef(null);
   const [originalApp, setOriginalApp] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
@@ -95,8 +97,24 @@ export default function AppFormPage({ mode }) {
   }, [shouldWarn]);
 
   useEffect(() => {
-    if (blocker.state === 'blocked') stayButtonRef.current?.focus();
-  }, [blocker.state]);
+    if (blocker.state !== 'blocked') return undefined;
+    const previous = document.activeElement;
+    stayButtonRef.current?.focus();
+
+    function onKeyDown(event) {
+      handleUnsavedDialogKey(event, {
+        first: stayButtonRef.current,
+        last: leaveButtonRef.current,
+        active: document.activeElement,
+        onStay: () => blocker.reset()
+      });
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (previous?.isConnected && typeof previous.focus === 'function') previous.focus();
+    };
+  }, [blocker.state, blocker.reset]);
 
   useEffect(() => {
     if (blocker.state === 'blocked' && !shouldWarn) blocker.reset();
@@ -187,7 +205,7 @@ export default function AppFormPage({ mode }) {
               <button ref={stayButtonRef} className="primary-button" type="button" onClick={() => blocker.reset()}>
                 Seguir editando
               </button>
-              <button className="ghost-button" type="button" onClick={() => blocker.proceed()}>
+              <button ref={leaveButtonRef} className="ghost-button" type="button" onClick={() => blocker.proceed()}>
                 Salir sin guardar
               </button>
             </div>
