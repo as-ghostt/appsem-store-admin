@@ -43,6 +43,8 @@ test('Cambios de likes o descargas no provocan nuevas consultas de comentarios',
   assert.notEqual(commentsCatalogKey(initial),
     commentsCatalogKey([{ ...initial[0], title: 'Alpha nueva' }, initial[1]]));
   assert.notEqual(commentsCatalogKey(initial), commentsCatalogKey([initial[0]]));
+  assert.notEqual(commentsCatalogKey(initial),
+    commentsCatalogKey([{ ...initial[0], commentsCount: 1 }, initial[1]]));
 });
 
 test('Comentarios de todas las apps se ordenan por fecha, sin modificar la entrada', () => {
