@@ -89,10 +89,10 @@ export default function AppsPage() {
           <input
             value={queryText}
             onChange={(event) => setQueryText(event.target.value)}
-            placeholder="Buscar por nombre, categoría, paquete o slug..."
+            placeholder="Buscar por nombre, categoría, paquete o slug..." aria-label="Buscar aplicaciones"
           />
         </label>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+        <select aria-label="Filtrar aplicaciones por estado" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           <option value="all">Todos los estados</option>
           <option value="published">Publicadas</option>
           <option value="draft">Ocultas / borrador</option>
@@ -100,7 +100,7 @@ export default function AppsPage() {
         </select>
       </section>
 
-      {error && <div className="alert error">{error}</div>}
+      {error && <div className="alert error" role="alert">{error}</div>}
 
       <section className="surface table-section">
         {loading ? (
@@ -148,18 +148,18 @@ export default function AppsPage() {
                       <div className="row-actions">
                         {app.status !== 'archived' ? (
                           <>
-                            <Link className="icon-button" to={`/apps/${app.id}/edit`} title="Editar">
+                            <Link className="icon-button" to={`/apps/${app.id}/edit`} title="Editar" aria-label={`Editar ${app.title}`}>
                               <Edit size={17} />
                             </Link>
-                            <button className="icon-button" onClick={() => handleToggle(app)} title={app.status === 'published' ? 'Ocultar' : 'Publicar'} type="button">
+                            <button className="icon-button" onClick={() => handleToggle(app)} title={app.status === 'published' ? 'Ocultar' : 'Publicar'} aria-label={`${app.status === 'published' ? 'Ocultar' : 'Publicar'} ${app.title}`} type="button">
                               {app.status === 'published' ? <EyeOff size={17} /> : <Eye size={17} />}
                             </button>
-                            <button className="icon-button danger" onClick={() => handleArchive(app)} title="Archivar sin borrar datos" type="button">
+                            <button className="icon-button danger" onClick={() => handleArchive(app)} title="Archivar sin borrar datos" aria-label={`Archivar ${app.title} sin borrar datos`} type="button">
                               <Archive size={17} />
                             </button>
                           </>
                         ) : (
-                          <button className="icon-button" onClick={() => handleRestore(app)} title="Restaurar como borrador" type="button">
+                          <button className="icon-button" onClick={() => handleRestore(app)} title="Restaurar como borrador" aria-label={`Restaurar ${app.title} como borrador`} type="button">
                             <ArchiveRestore size={17} />
                           </button>
                         )}
