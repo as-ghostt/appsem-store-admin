@@ -15,6 +15,7 @@ import { isOfficialPlayStoreUrl, isGithubReleasesApkUrl } from '../utils/downloa
 import { isValidCatalogSlug } from '../utils/catalogSlug.js';
 import { isPublicHttpsUrl } from '../utils/publicLinks.js';
 import { createCatalogApp, updateCatalogApp } from './catalogTransactions';
+import { mapWithConcurrency, newestCommentsFirst } from '../utils/commentsLoading.js';
 import {
   moderateCommentAtomic, archiveAppAtomic, restoreAppAtomic, updatePublicationAtomic
 } from './phase3Transactions';
@@ -202,28 +203,21 @@ export async function updateAppStatus(appId, status) {
 }
 
 export async function loadAllComments(apps = []) {
-  const results = [];
-
-  for (const app of apps) {
+  // Hasta cuatro consultas en paralelo en lugar de una lectura serial por app.
+  // Mantiene el mismo conjunto de documentos y una sola consulta por app.
+  const pages = await mapWithConcurrency(apps, async (app) => {
     const commentsRef = collection(db, 'apps', app.id, 'comments');
     const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(commentsQuery);
+    return snapshot.docs.map((commentDocument) => ({
+      id: commentDocument.id,
+      appId: app.id,
+      appTitle: app.title,
+      ...commentDocument.data(),
+    }));
+  }, 4);
 
-    snapshot.forEach((commentDocument) => {
-      results.push({
-        id: commentDocument.id,
-        appId: app.id,
-        appTitle: app.title,
-        ...commentDocument.data(),
-      });
-    });
-  }
-
-  return results.sort((a, b) => {
-    const aTime = a.createdAt?.seconds || 0;
-    const bTime = b.createdAt?.seconds || 0;
-    return bTime - aTime;
-  });
+  return newestCommentsFirst(pages.flat());
 }
 
 export async function approveComment(comment) {
