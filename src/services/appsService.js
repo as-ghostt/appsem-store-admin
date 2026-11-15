@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -15,7 +14,7 @@ import { isOfficialPlayStoreUrl, isGithubReleasesApkUrl } from '../utils/downloa
 import { isValidCatalogSlug } from '../utils/catalogSlug.js';
 import { isPublicHttpsUrl } from '../utils/publicLinks.js';
 import { createCatalogApp, updateCatalogApp } from './catalogTransactions';
-import { mapWithConcurrency, newestCommentsFirst } from '../utils/commentsLoading.js';
+import { fetchCommentsPage } from './commentsPagination.js';
 import {
   moderateCommentAtomic, archiveAppAtomic, restoreAppAtomic, updatePublicationAtomic
 } from './phase3Transactions';
@@ -202,22 +201,8 @@ export async function updateAppStatus(appId, status) {
   return updatePublicationAtomic(db, appId, status);
 }
 
-export async function loadAllComments(apps = []) {
-  // Hasta cuatro consultas en paralelo en lugar de una lectura serial por app.
-  // Mantiene el mismo conjunto de documentos y una sola consulta por app.
-  const pages = await mapWithConcurrency(apps, async (app) => {
-    const commentsRef = collection(db, 'apps', app.id, 'comments');
-    const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(commentsQuery);
-    return snapshot.docs.map((commentDocument) => ({
-      id: commentDocument.id,
-      appId: app.id,
-      appTitle: app.title,
-      ...commentDocument.data(),
-    }));
-  }, 4);
-
-  return newestCommentsFirst(pages.flat());
+export async function loadCommentsPage(apps = [], cursors = {}) {
+  return fetchCommentsPage(db, apps, cursors);
 }
 
 export async function approveComment(comment) {
