@@ -25,7 +25,7 @@ export async function mapWithConcurrency(items, fetchItem, concurrency = 4) {
 
 export function commentsCatalogKey(apps = []) {
   return JSON.stringify(
-    apps.map(({ id, title }) => [id, title || ''])
+    apps.map(({ id, title, commentsCount }) => [id, title || '', commentsCount ?? 0])
       .sort((a, b) => a[0].localeCompare(b[0]))
   );
 }
