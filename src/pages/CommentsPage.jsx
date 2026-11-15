@@ -107,16 +107,16 @@ export default function CommentsPage() {
       <section className="surface filters-bar">
         <label className="search-field">
           <Search size={18} />
-          <input value={queryText} onChange={(event) => setQueryText(event.target.value)} placeholder="Buscar comentario, nombre o app..." />
+          <input value={queryText} onChange={(event) => setQueryText(event.target.value)} placeholder="Buscar comentario, nombre o app..." aria-label="Buscar comentarios" />
         </label>
-        <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+        <select aria-label="Filtrar comentarios por estado" value={filter} onChange={(event) => setFilter(event.target.value)}>
           <option value="pending">Pendientes</option>
           <option value="approved">Aprobados</option>
           <option value="all">Todos</option>
         </select>
       </section>
 
-      {error && <div className="alert error">{error}</div>}
+      {error && <div className="alert error" role="alert">{error}</div>}
 
       <section className="comments-list">
         {loading ? (
