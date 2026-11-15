@@ -29,6 +29,7 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-shell">
+      <a href="#admin-main" className="skip-link">Saltar al contenido</a>
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-logo">AS</div>
@@ -38,7 +39,7 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Secciones del panel">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -69,13 +70,19 @@ export default function AdminLayout() {
             <span className="eyebrow">Administración</span>
             <h1>Appsem Store</h1>
           </div>
-          <div className="topbar-card">
-            <BarChart3 size={18} />
-            Datos conectados con Firestore
+          <div className="topbar-tools">
+            <div className="topbar-card">
+              <BarChart3 size={18} />
+              Datos conectados con Firestore
+            </div>
+            <button className="ghost-button mobile-signout" type="button" onClick={handleLogout}>
+              <LogOut size={17} />
+              Cerrar sesión
+            </button>
           </div>
         </header>
 
-        <main className="main-content">
+        <main className="main-content" id="admin-main" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
