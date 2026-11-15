@@ -59,7 +59,7 @@ export default function DashboardPage() {
         </Link>
       </section>
 
-      {error && <div className="alert error">{error}</div>}
+      {error && <div className="alert error" role="alert">{error}</div>}
       {loading ? (
         <div className="loader-card surface"><span className="loader" /> Cargando datos...</div>
       ) : (
@@ -67,7 +67,7 @@ export default function DashboardPage() {
           <section className="stats-grid">
             <StatCard icon={AppWindow} label="Apps totales" value={stats.totalApps} note={`${stats.published} publicadas · ${stats.drafts} ocultas · ${stats.archived} archivadas`} />
             <StatCard icon={Heart} label="Me gusta" value={stats.likes} note="Generados en la página pública" />
-            <StatCard icon={Download} label="Clics de descarga" value={stats.downloads} note="Clics hacia Google Play" />
+            <StatCard icon={Download} label="Clics de descarga" value={stats.downloads} note="Clics de descarga" />
             <StatCard icon={Star} label="Valoraciones" value={stats.ratingCount} note="Votos recibidos" />
             <StatCard icon={MessageCircle} label="Comentarios aprobados" value={stats.comments} note="Visibles en la tienda" />
           </section>
