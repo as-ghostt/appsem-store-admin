@@ -55,3 +55,9 @@ La verificación de firma se realiza antes del paso `gh release upload`; el test
 
 
 El workflow de CI del Store también comprueba que el runner `ubuntu-latest` tenga `apksigner` en PATH o en Android SDK Build Tools y ejecuta `apksigner version`. Esto valida la disponibilidad del ejecutable en el runner de CI; la ejecución del ensamblador de Release sigue reservada al evento de publicación y no se ha disparado con una Release real. CI de comprobación: [#43870689885](https://github.com/as-ghostt/appsem-store/actions/runs/43870689885) y [#43870709272](https://github.com/as-ghostt/appsem-store/actions/runs/43870709272), ambos pendientes al registrar esta nota.
+
+
+### Resultado CI de las pruebas de firma
+
+- Store CI [#43870524222](https://github.com/as-ghostt/appsem-store/actions/runs/43870524222), commit `e8eb9b8cd34e353ec7b5eca78eefd4938bb4111d`: **success**. Pasaron pruebas de integridad, regresión del workflow, ESLint, build y verificaciones de solo lectura contra Cloudflare/Firestore.
+- Esta ejecución prueba la regresión estática que exige `apksigner verify` antes de la subida. No ejecutó el workflow de Release ni una verificación sobre un APK real.
