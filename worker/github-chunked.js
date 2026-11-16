@@ -32,6 +32,28 @@ async function readJson(request) {
   if (Number(request.headers.get('content-length') || 0) > 4096) fail(413, 'Solicitud demasiado grande.');
   try { return await request.json(); } catch { fail(400, 'Datos de subida inválidos.'); }
 }
+async function readExactPart(request, expectedBytes) {
+  if (!request.body) fail(400, 'La parte recibida está vacía.');
+  const reader = request.body.getReader();
+  const bytes = new Uint8Array(expectedBytes);
+  let offset = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > expectedBytes - offset) {
+        await reader.cancel('Parte mayor al tamaño permitido.');
+        fail(400, 'La parte supera el tamaño esperado.');
+      }
+      bytes.set(value, offset);
+      offset += value.byteLength;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (offset !== expectedBytes) fail(400, 'La parte recibida está incompleta.');
+  return bytes;
+}
 async function asJson(response) {
   try { return await response.json(); } catch { return {}; }
 }
@@ -130,9 +152,9 @@ async function uploadPart(github, repo, token, request) {
     if (existing.size !== required || existing.state !== 'uploaded') fail(409, 'Parte previa dañada. Usa otra versión.');
     return { uploaded: true, alreadyUploaded: true, index };
   }
-  // Buffer only one 20 MiB part. Never buffer the full APK in a Worker.
-  const bytes = await request.arrayBuffer();
-  if (bytes.byteLength !== required) fail(400, 'La parte recibida está incompleta.');
+  // Read no more than the exact 20 MiB part size, even when Content-Length is absent.
+  // Never let an oversized request allocate an unbounded Worker buffer.
+  const bytes = await readExactPart(request, required);
   const url = 'https://uploads.github.com/repos/' + repo + '/releases/' + releaseId +
     '/assets?name=' + encodeURIComponent(name);
   const response = await github(url, token, {
