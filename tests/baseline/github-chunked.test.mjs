@@ -142,3 +142,19 @@ test('No acepta tamaños o nombres inválidos para nuevas subidas', async () => 
   });
   assert.equal(tooBig.status, 400);
 });
+
+
+test('Rechaza una parte sobredimensionada aunque no declare Content-Length', async () => {
+  const env = createGateway();
+  const data = { slug: 'demo', version: '1.0.0', name: 'demo.apk', size: 5, parts: 1 };
+  const start = await env.run('start', data);
+  assert.equal(start.status, 200);
+  const result = await env.run('part', null, {
+    'X-APK-Upload-Id': String(start.payload.uploadId),
+    'X-APK-Part-Index': '0'
+  }, Uint8Array.from([80, 75, 3, 4, 0, 99]));
+  assert.equal(result.status, 400);
+  assert.match(result.payload.error, /supera el tamaño esperado/);
+  assert.equal(env.assets.length, 0);
+  assert.equal(env.dispatchCount, 0);
+});
