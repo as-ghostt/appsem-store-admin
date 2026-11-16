@@ -61,3 +61,12 @@ El workflow de CI del Store también comprueba que el runner `ubuntu-latest` ten
 
 - Store CI [#43870524222](https://github.com/as-ghostt/appsem-store/actions/runs/43870524222), commit `e8eb9b8cd34e353ec7b5eca78eefd4938bb4111d`: **success**. Pasaron pruebas de integridad, regresión del workflow, ESLint, build y verificaciones de solo lectura contra Cloudflare/Firestore.
 - Esta ejecución prueba la regresión estática que exige `apksigner verify` antes de la subida. No ejecutó el workflow de Release ni una verificación sobre un APK real.
+
+
+## Alcance exclusivo de APK: BotShow
+
+Este flujo no es un publicador genérico de todas las fichas de AppsEM Store. Solo acepta `slug=botshow`; cualquier otro slug se rechaza antes de ensamblar el archivo. Las demás aplicaciones mantienen sus enlaces a Google Play y no pasan por esta ruta de APK.
+
+La variable de repositorio `BOTSHOW_APK_CERT_SHA256` debe contener el fingerprint SHA-256 oficial del certificado de firma de BotShow (64 caracteres hexadecimales, se aceptan separadores). El workflow ejecuta `apksigner verify --verbose --print-certs` y compara el certificado encontrado con ese valor. Si falta o no coincide, la publicación se bloquea. No se reutiliza el fingerprint de AuthPro ni se crea un inventario de certificados para otras apps.
+
+**Pendiente operativo:** registrar `BOTSHOW_APK_CERT_SHA256` en Settings → Secrets and variables → Actions → Variables, una vez obtenido el fingerprint oficial de BotShow desde Play App Signing o su keystore oficial. No se inventó ni se tomó el fingerprint de otra app.
