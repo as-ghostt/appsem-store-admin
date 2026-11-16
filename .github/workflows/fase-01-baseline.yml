@@ -37,6 +37,8 @@ jobs:
           java-version: "21"
       - name: "Instalar dependencias"
         run: npm ci --no-audit --no-fund
+      - name: "Auditar dependencias de producción (bloquear vulnerabilidades críticas)"
+        run: npm audit --omit=dev --audit-level=critical
       - name: "Validar sintaxis de recuperación privada en GitHub Actions"
         run: node --check scripts/firestore/check-real-backup-recovery.mjs
       - name: "Probar restricción estricta a GitHub Actions y Emulator local"
