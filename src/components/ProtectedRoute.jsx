@@ -3,6 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ADMIN_EMAIL } from '../config';
+import { isAuthorizedAdmin } from '../utils/adminAuthorization.js';
 import { auth } from '../firebase';
 
 export default function ProtectedRoute({ children }) {
@@ -19,10 +20,7 @@ export default function ProtectedRoute({ children }) {
         try {
           // El correo visible no sustituye los claims comprobados por Firebase Auth.
           const token = await user.getIdTokenResult(true);
-          const authorized = user.email === ADMIN_EMAIL &&
-            user.emailVerified === true &&
-            token.claims.email === ADMIN_EMAIL &&
-            token.claims.email_verified === true;
+          const authorized = isAuthorizedAdmin(user, token.claims, ADMIN_EMAIL);
           if (!authorized) {
             await signOut(auth);
             if (active) setState({ loading: false, user: null, denied: true });
