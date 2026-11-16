@@ -3,6 +3,7 @@ import { LockKeyhole, ShieldCheck, Store } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ADMIN_EMAIL } from '../config';
+import { isAuthorizedAdmin } from '../utils/adminAuthorization.js';
 import { auth, googleProvider } from '../firebase';
 
 export default function LoginPage() {
@@ -17,10 +18,7 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const token = await result.user.getIdTokenResult(true);
-      if (result.user.email !== ADMIN_EMAIL ||
-          result.user.emailVerified !== true ||
-          token.claims.email !== ADMIN_EMAIL ||
-          token.claims.email_verified !== true) {
+      if (!isAuthorizedAdmin(result.user, token.claims, ADMIN_EMAIL)) {
         await signOut(auth);
         setError(`Solo puede acceder el correo administrador verificado: ${ADMIN_EMAIL}`);
         return;
