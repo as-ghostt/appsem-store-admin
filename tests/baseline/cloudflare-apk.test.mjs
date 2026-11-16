@@ -119,3 +119,42 @@ test('Cloudflare APK upload verifies signed Firebase identity and GitHub Release
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Cloudflare chunked APK operations reject invalid Firebase tokens before GitHub access', async () => {
+  const origin = 'https://appsem-store-admin.pages.dev';
+  const originalFetch = globalThis.fetch;
+  let externalCalls = 0;
+  globalThis.fetch = async () => {
+    externalCalls++;
+    throw Error('No debe contactar servicios externos con un token inválido.');
+  };
+  try {
+    const res = await onRequest({
+      request: new Request(origin + '/api/upload-apk', {
+        method: 'POST',
+        headers: {
+          Origin: origin,
+          Authorization: 'Bearer invalid-token',
+          'X-APK-Operation': 'start',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          slug: 'demo', version: '1.0.0', name: 'demo.apk',
+          size: 1024, parts: 1
+        })
+      }),
+      env: {
+        GITHUB_TOKEN: 'synthetic-test-token',
+        GITHUB_REPOSITORY: 'as-ghostt/appsem-store',
+        FIREBASE_PROJECT_ID: 'webs-8b1bf',
+        ADMIN_EMAIL: 'eler30.mr@gmail.com'
+      }
+    });
+    assert.equal(res.status, 403);
+    assert.deepEqual(await res.json(), { error: 'Sesión no autorizada.' });
+    assert.equal(externalCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
