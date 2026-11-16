@@ -29,3 +29,17 @@ Las variables no secretas `GITHUB_REPOSITORY`, `ADMIN_EMAIL`, `FIREBASE_PROJECT_
 - No existen secretos de GitHub guardados en código. El endpoint responde 503 si falta el secreto; en el despliegue actual está configurado.
 
 Integración vinculada a la fase 4 de `docs/auditorias/Auditoria_1_Appsem_Store_Admin.md`; no cerrar las fases de auditoría aún pendientes.
+
+
+## Alcance mínimo recomendado para GITHUB_TOKEN (revisión 16/11/2026)
+
+El flujo chunked consulta y modifica únicamente Releases y sus assets del repositorio destino, y envía `repository_dispatch` al mismo repositorio.
+
+Para un **Fine-grained personal access token**, la documentación oficial de GitHub indica que estas operaciones requieren `Contents: write`. Restringir el token a **Only select repositories → as-ghostt/appsem-store** y conceder únicamente **Repository permissions → Contents: Read and write**. No habilitar `Actions`, `Administration` ni `Workflows` para este flujo, salvo que una operación futura lo requiera y se justifique por separado.
+
+Referencias oficiales:
+- Create a repository dispatch event: https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event
+- REST API endpoints for releases: https://docs.github.com/en/rest/releases/releases
+- Fine-grained PAT permissions: https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens
+
+**Importante:** el token está configurado como secreto en Cloudflare Production según el registro de despliegue, pero no se ha podido leer su configuración de permisos. Este apartado es una recomendación verificada contra la documentación de GitHub, no una afirmación de que el token existente ya tenga ese alcance.
