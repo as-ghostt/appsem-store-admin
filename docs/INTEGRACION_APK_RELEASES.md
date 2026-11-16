@@ -43,3 +43,12 @@ Referencias oficiales:
 - Fine-grained PAT permissions: https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens
 
 **Importante:** el token está configurado como secreto en Cloudflare Production según el registro de despliegue, pero no se ha podido leer su configuración de permisos. Este apartado es una recomendación verificada contra la documentación de GitHub, no una afirmación de que el token existente ya tenga ese alcance.
+
+
+## Verificación criptográfica del APK antes de publicar — 16/11/2026
+
+El workflow `.github/workflows/appsem-apk-assemble.yml` ejecuta ahora `apksigner verify --verbose` sobre el APK ensamblado antes de subirlo a la Release. También descarga y vuelve a verificar el APK final cuando retoma una ejecución interrumpida después de la subida. Si `apksigner` no está disponible en el runner, el flujo falla cerrado y no publica.
+
+**Alcance exacto:** `apksigner verify` comprueba la validez criptográfica de la firma APK y los esquemas de firma que reconoce. Por sí solo no identifica al desarrollador legítimo: no se ha configurado todavía un pin de certificado SHA-256 por aplicación/slug. El único fingerprint presente en `assetlinks.json` corresponde a AuthPro (`com.appsmarttechnology.authpro`) y no debe reutilizarse para BotShow ni otras aplicaciones. Para activar pinning hace falta obtener la huella SHA-256 de cada certificado de firma legítimo desde su keystore/Play App Signing o desde un APK oficial de referencia confiable.
+
+La verificación de firma se realiza antes del paso `gh release upload`; el test estático comprueba este orden. El CI debe confirmar la ejecución real del runner y la disponibilidad de Android SDK Build Tools. No se publicó ninguna Release real ni se desplegó Cloudflare.
