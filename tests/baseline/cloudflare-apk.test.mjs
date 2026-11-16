@@ -158,3 +158,73 @@ test('Cloudflare chunked APK operations reject invalid Firebase tokens before Gi
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Cloudflare chunked APK endpoint rejects signed but non-admin Firebase identities before GitHub', async () => {
+  const origin = 'https://appsem-store-admin.pages.dev';
+  const repo = 'as-ghostt/appsem-store';
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const cases = [
+    ['foreign email', { email: 'intruder@example.com' }],
+    ['unverified email', { email_verified: false }],
+    ['wrong audience', { aud: 'another-project' }],
+    ['wrong issuer', { iss: 'https://securetoken.google.com/another-project' }],
+    ['expired token', { exp: now - 1 }],
+    ['future issued token', { iat: now + 60 }],
+    ['future authentication time', { auth_time: now + 60 }]
+  ];
+  const originalFetch = globalThis.fetch;
+  let githubCalls = 0;
+  globalThis.fetch = async url => {
+    if (String(url).endsWith('/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')) {
+      throw Error('La identidad inválida no debe llegar a consultar claves externas.');
+    }
+    githubCalls++;
+    throw Error('No debe contactar GitHub con una identidad no autorizada.');
+  };
+  try {
+    for (const [label, overrides] of cases) {
+      const claims = {
+        aud: 'webs-8b1bf',
+        iss: 'https://securetoken.google.com/webs-8b1bf',
+        sub: 'synthetic-admin-user',
+        exp: now + 3600,
+        iat: now,
+        auth_time: now,
+        email: 'eler30.mr@gmail.com',
+        email_verified: true,
+        ...overrides
+      };
+      const content = encode({ alg: 'RS256', kid: 'test-key' }) + '.' + encode(claims);
+      const jwt = content + '.' + sign('RSA-SHA256', Buffer.from(content), privateKey).toString('base64url');
+      const res = await onRequest({
+        request: new Request(origin + '/api/upload-apk', {
+          method: 'POST',
+          headers: {
+            Origin: origin,
+            Authorization: 'Bearer ' + jwt,
+            'X-APK-Operation': 'start',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            slug: 'demo', version: '1.0.0', name: 'demo.apk',
+            size: 1024, parts: 1
+          })
+        }),
+        env: {
+          GITHUB_TOKEN: 'synthetic-test-token',
+          GITHUB_REPOSITORY: repo,
+          FIREBASE_PROJECT_ID: 'webs-8b1bf',
+          ADMIN_EMAIL: 'eler30.mr@gmail.com'
+        }
+      });
+      assert.equal(res.status, 403, label);
+      assert.deepEqual(await res.json(), { error: 'Sesión no autorizada.' }, label);
+    }
+    assert.equal(githubCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
